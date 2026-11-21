@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
+import { Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,13 +44,8 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-140px)] bg-[#FAF8F5] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#18181B]">
       <div className="max-w-md w-full mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2.5 group mb-1">
-            <div className="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shadow-xs group-hover:bg-[#115E59] transition-colors">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <span className="text-lg font-bold text-[#18181B] tracking-tight">
-              BaseDoctor
-            </span>
+          <Link href="/" className="inline-flex items-center justify-center mb-1">
+            <BrandLogo variant="shield" size={36} />
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-[#18181B]">
             Załóż darmowe konto

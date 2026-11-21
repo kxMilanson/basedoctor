@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
-  ShieldCheck,
   LogOut,
   LogIn,
   Menu,
@@ -54,13 +54,8 @@ export function Navbar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shadow-xs transition group-hover:bg-[#115E59]">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <span className="text-base font-bold text-[#18181B] tracking-tight">
-              BaseDoctor
-            </span>
+          <Link href="/" className="transition hover:opacity-90">
+            <BrandLogo variant="shield" size={32} />
           </Link>
 
           {/* Public Navigation Links */}

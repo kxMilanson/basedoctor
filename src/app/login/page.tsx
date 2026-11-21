@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
+import { Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,13 +48,8 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-140px)] bg-[#FAF8F5] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#18181B]">
       <div className="max-w-md w-full mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2.5 group mb-1">
-            <div className="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shadow-xs group-hover:bg-[#115E59] transition-colors">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <span className="text-lg font-bold text-[#18181B] tracking-tight">
-              BaseDoctor
-            </span>
+          <Link href="/" className="inline-flex items-center justify-center mb-1">
+            <BrandLogo variant="shield" size={36} />
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-[#18181B]">
             Zaloguj się do swojego sklepu

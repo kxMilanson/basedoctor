@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export function Footer() {
   const pathname = usePathname();
@@ -19,7 +20,7 @@ export function Footer() {
     <footer className="border-t border-[#E8E4DC] bg-[#F3F0EA]/60 py-8 text-xs text-[#71717A]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2.5">
-          <span className="font-bold text-[#18181B]">BaseDoctor</span>
+          <BrandLogo variant="shield" size={24} />
           <span className="text-[#D6D1C7]">•</span>
           <span>© {new Date().getFullYear()} Diagnostyka dla sklepów e-commerce</span>
         </div>

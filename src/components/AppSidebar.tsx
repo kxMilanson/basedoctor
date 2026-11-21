@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   LayoutDashboard,
-  ShieldCheck,
   FileText,
   Store,
   Users,
@@ -78,12 +78,10 @@ export function AppSidebar({
         {/* Brand Header */}
         <div className="h-16 px-5 flex items-center border-b border-[#E8E4DC]">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shadow-xs group-hover:bg-[#115E59] transition-colors">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+            <BrandLogo variant="shield" size={32} showWordmark={false} />
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-tight text-[#18181B] leading-none">
-                BaseDoctor
+                Base<span className="text-[#0F766E]">Doctor</span>
               </span>
               <span className="text-[11px] text-[#71717A] mt-1">
                 Kondycja Twojego sklepu
@@ -213,11 +211,8 @@ export function AppSidebar({
 
       {/* Mobile Top Bar */}
       <div className="lg:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-[#F3F0EA] border-b border-[#E8E4DC]">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#0F766E] text-white flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4" />
-          </div>
-          <span className="text-sm font-bold text-[#18181B]">BaseDoctor</span>
+        <Link href="/dashboard">
+          <BrandLogo variant="shield" size={28} />
         </Link>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
