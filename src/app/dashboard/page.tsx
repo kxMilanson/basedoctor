@@ -505,27 +505,27 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
-              {/* 1. HERO STORE HEALTH BANNER WITH SVG RADIAL GAUGE */}
-              <section className="studio-card p-6 sm:p-8">
+              {/* 1. DARK OBSIDIAN HERO COMMAND MODULE */}
+              <section className="cockpit-hero-card p-6 sm:p-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                  <div className="lg:col-span-8 space-y-4">
+                  <div className="lg:col-span-8 space-y-5">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span
-                        className={
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
                           score >= 80
-                            ? "pill-healthy"
+                            ? "bg-[#10B981]/15 text-[#34D399] border-[#10B981]/30"
                             : score >= 50
-                            ? "pill-warning"
-                            : "pill-urgent"
-                        }
+                            ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                            : "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                        }`}
                       >
                         <span
                           className={`w-2 h-2 rounded-full ${
                             score >= 80
                               ? "bg-[#10B981]"
                               : score >= 50
-                              ? "bg-[#D97706]"
-                              : "bg-[#E11D48]"
+                              ? "bg-amber-400"
+                              : "bg-rose-400"
                           }`}
                         />
                         {score >= 80
@@ -535,7 +535,7 @@ export default function DashboardPage() {
                           : "Pilne sprawy do poprawy"}
                       </span>
                       {latestScan && (
-                        <span className="text-xs sm:text-sm text-[#71717A]">
+                        <span className="text-xs sm:text-sm text-zinc-400">
                           Ostatnie sprawdzenie:{" "}
                           {new Date(
                             latestScan.completedAt || latestScan.startedAt
@@ -545,29 +545,29 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#18181B]">
+                      <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                         {latestScan ? healthHeadline : "Sklep gotowy do pierwszego sprawdzenia"}
                       </h2>
-                      <p className="text-sm sm:text-base text-[#52525B] leading-relaxed max-w-2xl">
+                      <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-2xl">
                         {latestScan ? (
                           <>
                             Przejrzeliśmy{" "}
-                            <strong className="font-semibold text-[#18181B]">
+                            <strong className="font-semibold text-white">
                               {latestScan.productsScanned} produktów
                             </strong>{" "}
                             oraz{" "}
-                            <strong className="font-semibold text-[#18181B]">
+                            <strong className="font-semibold text-white">
                               {latestScan.ordersScanned} zamówień
                             </strong>
                             .{" "}
                             {latestScan.criticalCount > 0 ? (
                               <>
                                 Pozostało{" "}
-                                <strong className="text-[#BE123C]">
+                                <strong className="text-rose-300">
                                   {latestScan.criticalCount} pilnych spraw
                                 </strong>{" "}
                                 oraz{" "}
-                                <strong className="text-[#B45309]">
+                                <strong className="text-amber-300">
                                   {latestScan.warningCount} rzeczy do poprawy
                                 </strong>
                                 .
@@ -582,13 +582,12 @@ export default function DashboardPage() {
                       </p>
                     </div>
 
-                    {/* Time Saved Business Banner */}
                     {latestScan && (
-                      <div className="inline-flex flex-wrap items-center gap-2 px-3.5 py-2 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] text-xs sm:text-sm text-[#3F3F46]">
-                        <Clock className="w-4 h-4 text-[#0F766E] shrink-0" />
+                      <div className="inline-flex flex-wrap items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.05] border border-white/[0.1] text-xs sm:text-sm text-zinc-300">
+                        <Clock className="w-4 h-4 text-[#2DD4BF] shrink-0" />
                         <span>
-                          Ręczne poprawianie w Base.com: <strong>~45 min</strong> • Z Asystentem BaseDoctor:{" "}
-                          <strong className="text-[#0F766E]">ok. 2 min</strong>
+                          Ręcznie w Base.com: <strong className="text-white">~45 min</strong> • Z Asystentem BaseDoctor:{" "}
+                          <strong className="text-[#2DD4BF]">ok. 2 min</strong>
                         </span>
                       </div>
                     )}
@@ -597,7 +596,7 @@ export default function DashboardPage() {
                       <button
                         onClick={handleRunQuickScan}
                         disabled={scanning}
-                        className="btn-studio-primary cursor-pointer"
+                        className="btn-studio-brand cursor-pointer"
                       >
                         <RefreshCw className={`w-4 h-4 ${scanning ? "animate-spin" : ""}`} />
                         <span>{scanning ? "Sprawdzanie..." : "Sprawdź sklep ponownie"}</span>
@@ -608,9 +607,9 @@ export default function DashboardPage() {
                           <a
                             href={`/api/scans/${latestScan.id}/pdf`}
                             download
-                            className="btn-studio-secondary"
+                            className="px-4 py-2.5 rounded-xl text-sm font-medium text-zinc-200 bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] transition inline-flex items-center gap-2"
                           >
-                            <Download className="w-4 h-4 text-[#0F766E]" />
+                            <Download className="w-4 h-4 text-[#2DD4BF]" />
                             <span>Pobierz raport PDF</span>
                           </a>
 
@@ -618,10 +617,10 @@ export default function DashboardPage() {
                             <button
                               type="button"
                               onClick={handleExportCorrectionsCsv}
-                              className="btn-studio-secondary border-[#99F6E4] bg-[#F0FDFA] text-[#0F766E] cursor-pointer"
+                              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-[#5EEAD4] bg-[#0F766E]/25 hover:bg-[#0F766E]/40 border border-[#14B8A6]/40 transition inline-flex items-center gap-2 cursor-pointer"
                             >
                               <FileSpreadsheet className="w-4 h-4" />
-                              <span>Pobierz korekty CSV ({fixedIssues.length})</span>
+                              <span>Korekty CSV ({fixedIssues.length})</span>
                             </button>
                           )}
                         </>
@@ -629,16 +628,16 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Right Visual Radial Health Gauge */}
-                  <div className="lg:col-span-4 p-6 rounded-2xl bg-[#FAF8F5] border border-[#E8E4DC] flex flex-col items-center space-y-4">
-                    <RadialHealthGauge score={latestScan ? score : 100} size={156} />
+                  {/* Right Visual Radial Health Gauge on Dark Glass */}
+                  <div className="lg:col-span-4 p-6 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex flex-col items-center space-y-4">
+                    <RadialHealthGauge score={latestScan ? score : 100} size={156} theme="dark" />
 
                     {scoreDelta !== null && (
                       <span
                         className={`text-xs font-semibold px-3 py-1 rounded-full ${
                           scoreDelta >= 0
-                            ? "bg-[#ECFDF5] text-[#047857]"
-                            : "bg-[#FFF1F2] text-[#BE123C]"
+                            ? "bg-[#10B981]/20 text-[#34D399]"
+                            : "bg-rose-500/20 text-rose-300"
                         }`}
                       >
                         {scoreDelta >= 0 ? `+${scoreDelta}` : scoreDelta} pkt od poprzedniego sprawdzenia
@@ -646,22 +645,22 @@ export default function DashboardPage() {
                     )}
 
                     {latestScan && (
-                      <div className="w-full space-y-2 pt-2 border-t border-[#E8E4DC]">
-                        <div className="w-full h-2.5 rounded-full bg-[#EAE6DF] overflow-hidden flex gap-0.5">
+                      <div className="w-full space-y-2 pt-2 border-t border-white/[0.08]">
+                        <div className="w-full h-2.5 rounded-full bg-white/[0.08] overflow-hidden flex gap-0.5">
                           {critPct > 0 && (
-                            <div className="h-full bg-[#E11D48]" style={{ width: `${critPct}%` }} />
+                            <div className="h-full bg-[#F43F5E]" style={{ width: `${critPct}%` }} />
                           )}
                           {warnPct > 0 && (
-                            <div className="h-full bg-[#D97706]" style={{ width: `${warnPct}%` }} />
+                            <div className="h-full bg-[#F59E0B]" style={{ width: `${warnPct}%` }} />
                           )}
                           {infoPct > 0 && (
-                            <div className="h-full bg-[#0F766E]" style={{ width: `${infoPct}%` }} />
+                            <div className="h-full bg-[#14B8A6]" style={{ width: `${infoPct}%` }} />
                           )}
                         </div>
-                        <div className="flex items-center justify-between text-xs text-[#52525B]">
-                          <span>Pilne: <strong className="text-[#18181B]">{latestScan.criticalCount}</strong></span>
-                          <span>Poprawa: <strong className="text-[#18181B]">{latestScan.warningCount}</strong></span>
-                          <span>Naprawione: <strong className="text-[#047857]">{fixedIssues.length}</strong></span>
+                        <div className="flex items-center justify-between text-xs text-zinc-400">
+                          <span>Pilne: <strong className="text-white">{latestScan.criticalCount}</strong></span>
+                          <span>Poprawa: <strong className="text-white">{latestScan.warningCount}</strong></span>
+                          <span>Naprawione: <strong className="text-[#34D399]">{fixedIssues.length}</strong></span>
                         </div>
                       </div>
                     )}
@@ -890,6 +889,14 @@ export default function DashboardPage() {
                                 <p className="text-sm text-[#52525B] mt-1 leading-relaxed">
                                   {issue.description}
                                 </p>
+                              )}
+                              {!isFixed && suggestion && (
+                                <div className="mt-2.5 inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E8E4DC] font-mono text-xs">
+                                  <span className="text-[#71717A] font-sans font-medium">Proponowana korekta:</span>
+                                  <span className="text-[#BE123C] line-through">{suggestion.oldValue}</span>
+                                  <ArrowRight className="w-3 h-3 text-[#71717A]" />
+                                  <span className="text-[#0F766E] font-semibold">{suggestion.suggestedValue}</span>
+                                </div>
                               )}
                             </div>
 

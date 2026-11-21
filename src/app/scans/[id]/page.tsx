@@ -255,66 +255,68 @@ export default function ScanDetailsPage() {
             </div>
           ) : (
             <>
-              {/* Executive Summary Card with Radial Gauge */}
-              <div className="studio-card p-6 sm:p-8 space-y-6">
+              {/* Dark Obsidian Executive Summary Card */}
+              <div className="cockpit-hero-card p-6 sm:p-8 space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="space-y-2.5">
                     <div className="flex flex-wrap items-center gap-2">
                       {isDemo ? (
-                        <span className="pill-demo">Sklep przykładowy</span>
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#14B8A6]/15 text-[#5EEAD4] border border-[#14B8A6]/30">
+                          Sklep przykładowy
+                        </span>
                       ) : (
-                        <span className="pill-healthy">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#10B981]/15 text-[#34D399] border border-[#10B981]/30">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Połączenie bezpieczne (tylko odczyt)
                         </span>
                       )}
-                      <span className="text-xs sm:text-sm text-[#71717A]">
+                      <span className="text-xs sm:text-sm text-zinc-400">
                         Wykonano: {new Date(scan.completedAt || scan.startedAt).toLocaleString("pl-PL")}
                       </span>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#18181B]">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                       {scan.shopConnection?.name || "Sklep Base.com"}
                     </h1>
-                    <p className="text-sm text-[#52525B] max-w-2xl leading-relaxed">
+                    <p className="text-sm text-zinc-300 max-w-2xl leading-relaxed">
                       Przejrzeliśmy {scan.productsScanned} produktów i {scan.ordersScanned} zamówień.
-                      Kliknij <strong>„Napraw 1 kliknięciem”</strong> przy wybranych pozycjach, aby bezpiecznie przygotować i zapisać poprawkę z możliwością cofnięcia.
+                      Kliknij <strong className="text-white">„Napraw 1 kliknięciem”</strong> przy wybranych pozycjach, aby bezpiecznie przygotować i zapisać poprawkę z możliwością cofnięcia.
                     </p>
                   </div>
 
-                  <div className="px-6 py-4 rounded-2xl bg-[#FAF8F5] border border-[#E8E4DC] flex justify-center shrink-0">
-                    <RadialHealthGauge score={scan.healthScore} size={140} />
+                  <div className="px-6 py-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex justify-center shrink-0">
+                    <RadialHealthGauge score={scan.healthScore} size={140} theme="dark" />
                   </div>
                 </div>
 
-                {/* Friendly Breakdown Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-5 border-t border-[#F1EFEA] text-center">
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC]">
-                    <div className="text-xs text-[#71717A]">Sprawdzone produkty</div>
-                    <div className="font-bold text-[#18181B] mt-0.5 text-xl tabular-nums">
+                {/* Friendly Glass Metric Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-5 border-t border-white/[0.08] text-center">
+                  <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                    <div className="text-xs text-zinc-400">Sprawdzone produkty</div>
+                    <div className="font-bold text-white mt-0.5 text-xl tabular-nums">
                       {scan.productsScanned}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC]">
-                    <div className="text-xs text-[#71717A]">Sprawdzone zamówienia</div>
-                    <div className="font-bold text-[#18181B] mt-0.5 text-xl tabular-nums">
+                  <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                    <div className="text-xs text-zinc-400">Sprawdzone zamówienia</div>
+                    <div className="font-bold text-white mt-0.5 text-xl tabular-nums">
                       {scan.ordersScanned}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[#FFF1F2] border border-[#FECDD3]">
-                    <div className="text-xs text-[#BE123C] font-semibold">Pilne sprawy</div>
-                    <div className="font-bold text-[#BE123C] mt-0.5 text-xl tabular-nums">
+                  <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30">
+                    <div className="text-xs text-rose-300 font-semibold">Pilne sprawy</div>
+                    <div className="font-bold text-rose-200 mt-0.5 text-xl tabular-nums">
                       {scan.criticalCount}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#FDE68A]">
-                    <div className="text-xs text-[#B45309] font-semibold">Warto poprawić</div>
-                    <div className="font-bold text-[#B45309] mt-0.5 text-xl tabular-nums">
+                  <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30">
+                    <div className="text-xs text-amber-300 font-semibold">Warto poprawić</div>
+                    <div className="font-bold text-amber-200 mt-0.5 text-xl tabular-nums">
                       {scan.warningCount}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] col-span-2 sm:col-span-1">
-                    <div className="text-xs text-[#047857] font-semibold">Naprawione teraz</div>
-                    <div className="font-bold text-[#047857] mt-0.5 text-xl tabular-nums">
+                  <div className="p-3.5 rounded-xl bg-[#10B981]/15 border border-[#10B981]/30 col-span-2 sm:col-span-1">
+                    <div className="text-xs text-[#34D399] font-semibold">Naprawione teraz</div>
+                    <div className="font-bold text-[#6EE7B7] mt-0.5 text-xl tabular-nums">
                       {fixedIssues.length}
                     </div>
                   </div>
@@ -480,6 +482,14 @@ export default function ScanDetailsPage() {
                           <p className="text-sm text-[#52525B] mt-1 leading-relaxed">
                             {issue.description}
                           </p>
+                          {!isFixed && suggestion && (
+                            <div className="mt-2.5 inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E8E4DC] font-mono text-xs">
+                              <span className="text-[#71717A] font-sans font-medium">Proponowana korekta:</span>
+                              <span className="text-[#BE123C] line-through">{suggestion.oldValue}</span>
+                              <span className="text-[#71717A]">→</span>
+                              <span className="text-[#0F766E] font-semibold">{suggestion.suggestedValue}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

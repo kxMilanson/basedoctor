@@ -5,15 +5,13 @@
 @layer base {
   :root {
     --bg-canvas: #FAF8F5;
-    --bg-sidebar: #F3F0EA;
+    --bg-obsidian: #090A0F;
     --bg-surface: #FFFFFF;
     --fg-ink: #18181B;
     --fg-secondary: #3F3F46;
     --fg-muted: #71717A;
     --border-line: #E8E4DC;
-    --border-subtle: #F1EFEA;
     --brand-teal: #0F766E;
-    --brand-teal-hover: #115E59;
   }
 
   html {
@@ -31,19 +29,44 @@
   }
 
   ::selection {
-    background-color: #CCFBF1;
-    color: #134E4A;
+    background-color: #14B8A6;
+    color: #042F2E;
   }
 }
 
 @layer components {
-  .bg-studio-grid {
-    background-color: #FAF8F5;
-    background-image: radial-gradient(#D6D1C7 1px, transparent 1px);
-    background-size: 24px 24px;
+  .bg-obsidian-spotlight {
+    background-color: #090A0F;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -15%, rgba(20, 184, 166, 0.16), transparent),
+      radial-gradient(ellipse 60% 40% at 85% 20%, rgba(15, 118, 110, 0.08), transparent);
   }
 
-  /* Studio Card Primitives ("Commerce, made clear.") */
+  .bento-dark-card {
+    background-color: #11131C;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+      0 12px 32px -8px rgba(0, 0, 0, 0.5);
+    transition: border-color 180ms ease, transform 180ms ease;
+  }
+
+  .bento-dark-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  .cockpit-hero-card {
+    background: linear-gradient(135deg, #0D0F17 0%, #121622 55%, #0C1418 100%);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+      0 20px 40px -12px rgba(9, 10, 15, 0.35);
+  }
+
+  /* Studio Card Primitives */
   .studio-card {
     background-color: #FFFFFF;
     border: 1px solid #E8E4DC;
@@ -65,7 +88,7 @@
     box-shadow: 0 12px 28px -6px rgba(24, 24, 27, 0.08), 0 4px 10px -2px rgba(24, 24, 27, 0.04);
   }
 
-  /* Studio Buttons — Generous 14px Typography */
+  /* Studio Buttons */
   .btn-studio-primary {
     display: inline-flex;
     align-items: center;
@@ -80,14 +103,11 @@
     color: #FFFFFF;
     border: 1px solid #18181B;
     box-shadow: 0 2px 6px 0 rgba(24, 24, 27, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    transition: background-color 140ms ease, transform 100ms ease, box-shadow 140ms ease;
+    transition: background-color 140ms ease, transform 100ms ease;
   }
   .btn-studio-primary:hover:not(:disabled) {
     background-color: #27272A;
     transform: translateY(-0.5px);
-  }
-  .btn-studio-primary:active:not(:disabled) {
-    transform: translateY(0px);
   }
   .btn-studio-primary:disabled {
     opacity: 0.5;
@@ -106,16 +126,13 @@
     line-height: 1.25rem;
     background-color: #0F766E;
     color: #FFFFFF;
-    border: 1px solid #0F766E;
-    box-shadow: 0 2px 8px 0 rgba(15, 118, 110, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.16);
-    transition: background-color 140ms ease, transform 100ms ease, box-shadow 140ms ease;
+    border: 1px solid #14B8A6;
+    box-shadow: 0 2px 10px 0 rgba(15, 118, 110, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: background-color 140ms ease, transform 100ms ease;
   }
   .btn-studio-brand:hover:not(:disabled) {
     background-color: #115E59;
     transform: translateY(-0.5px);
-  }
-  .btn-studio-brand:active:not(:disabled) {
-    transform: translateY(0px);
   }
   .btn-studio-brand:disabled {
     opacity: 0.5;
@@ -218,7 +235,7 @@
     border: 1px solid #E8E4DC;
   }
 
-  /* Legacy aliases mapped to warm studio tokens */
+  /* Legacy aliases */
   .pci-card {
     @apply studio-card;
   }
@@ -248,7 +265,6 @@
   }
 }
 
-/* Custom crisp warm scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -257,9 +273,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D6D1C7;
+  background: #3F3F46;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #A1A1AA;
+  background: #52525B;
 }

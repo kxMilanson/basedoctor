@@ -50,48 +50,45 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E8E4DC]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 bg-[#090A0F]/85 backdrop-blur-xl border-b border-white/[0.08] text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Brand Logo */}
           <Link href="/" className="transition hover:opacity-90">
-            <BrandLogo variant="shield" size={32} />
+            <BrandLogo variant="shield" size={32} theme="dark" />
           </Link>
 
           {/* Public Navigation Links */}
           {pathname === "/" && (
-            <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#52525B]">
-              <a href="#jak-to-dziala" className="hover:text-[#18181B] transition">
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
+              <a href="#jak-to-dziala" className="hover:text-white transition">
                 Jak to działa
               </a>
-              <a href="#co-sprawdzamy" className="hover:text-[#18181B] transition">
-                Co sprawdzamy
+              <a href="#bento-funkcje" className="hover:text-white transition">
+                Możliwości
               </a>
-              <a href="#dla-kogo" className="hover:text-[#18181B] transition">
-                Dla kogo
+              <a href="#co-sprawdzamy" className="hover:text-white transition">
+                Przykłady błędów
               </a>
-              <a href="#kontakt" className="hover:text-[#18181B] transition">
+              <a href="#kontakt" className="hover:text-white transition">
                 Kontakt
               </a>
             </nav>
           )}
 
-          {/* User Profile / Auth Actions */}
-          <div className="hidden md:flex items-center gap-2.5">
+          {/* Auth Actions */}
+          <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <Link
-                  href="/dashboard"
-                  className="btn-studio-brand"
-                >
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span>Przejdź do panelu</span>
+                <Link href="/dashboard" className="btn-studio-brand">
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Otwórz pulpit</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="btn-studio-secondary text-xs cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition flex items-center gap-2 cursor-pointer"
                 >
-                  <LogOut className="w-3.5 h-3.5 text-[#71717A]" />
+                  <LogOut className="w-4 h-4 text-zinc-400" />
                   <span>Wyloguj</span>
                 </button>
               </>
@@ -99,17 +96,14 @@ export function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="btn-studio-secondary"
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 hover:text-white hover:bg-white/[0.06] transition flex items-center gap-2"
                 >
-                  <LogIn className="w-3.5 h-3.5 text-[#71717A]" />
+                  <LogIn className="w-4 h-4 text-zinc-400" />
                   <span>Zaloguj się</span>
                 </Link>
-                <Link
-                  href="/register"
-                  className="btn-studio-brand"
-                >
+                <Link href="/register" className="btn-studio-brand">
                   <span>Sprawdź swój sklep</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </>
             )}
@@ -119,7 +113,7 @@ export function Navbar() {
           <div className="flex md:hidden items-center">
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="p-2 rounded-xl bg-white border border-[#E8E4DC] text-[#18181B]"
+              className="p-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white"
               aria-label="Menu"
             >
               {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -130,17 +124,17 @@ export function Navbar() {
 
       {/* Mobile Drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#E8E4DC] px-4 pt-3 pb-5 space-y-3 bg-[#FAF8F5]">
+        <div className="md:hidden border-t border-white/[0.08] px-4 pt-3 pb-5 space-y-3 bg-[#090A0F]">
           {pathname === "/" && (
-            <div className="flex flex-col gap-1.5 text-xs font-medium text-[#3F3F46] pb-2 border-b border-[#E8E4DC]">
+            <div className="flex flex-col gap-2 text-sm font-medium text-zinc-300 pb-3 border-b border-white/[0.08]">
               <a href="#jak-to-dziala" onClick={() => setMobileOpen(false)} className="py-1.5">
                 Jak to działa
               </a>
-              <a href="#co-sprawdzamy" onClick={() => setMobileOpen(false)} className="py-1.5">
-                Co sprawdzamy
+              <a href="#bento-funkcje" onClick={() => setMobileOpen(false)} className="py-1.5">
+                Możliwości
               </a>
-              <a href="#dla-kogo" onClick={() => setMobileOpen(false)} className="py-1.5">
-                Dla kogo
+              <a href="#co-sprawdzamy" onClick={() => setMobileOpen(false)} className="py-1.5">
+                Przykłady błędów
               </a>
               <a href="#kontakt" onClick={() => setMobileOpen(false)} className="py-1.5">
                 Kontakt
@@ -155,14 +149,14 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className="btn-studio-brand w-full"
               >
-                Przejdź do panelu
+                Otwórz pulpit
               </Link>
               <button
                 onClick={() => {
                   setMobileOpen(false);
                   handleLogout();
                 }}
-                className="btn-studio-secondary w-full"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium text-zinc-300 bg-white/[0.06] border border-white/[0.08] w-full"
               >
                 Wyloguj się
               </button>
@@ -172,7 +166,7 @@ export function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileOpen(false)}
-                className="btn-studio-secondary w-full"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium text-center text-zinc-200 bg-white/[0.06] border border-white/[0.08] w-full"
               >
                 Zaloguj się
               </Link>

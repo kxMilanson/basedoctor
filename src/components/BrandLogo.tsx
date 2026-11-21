@@ -4,12 +4,14 @@ interface BrandLogoProps {
   variant?: "pulse" | "shield";
   size?: number;
   showWordmark?: boolean;
+  theme?: "light" | "dark";
 }
 
 export function BrandLogo({
   variant = "shield",
   size = 32,
   showWordmark = true,
+  theme = "light",
 }: BrandLogoProps) {
   return (
     <div className="inline-flex items-center gap-2.5 select-none">
@@ -64,8 +66,12 @@ export function BrandLogo({
         </svg>
       )}
       {showWordmark && (
-        <span className="text-base font-bold tracking-tight text-[#18181B]">
-          Base<span className="text-[#0F766E]">Doctor</span>
+        <span
+          className={`text-base font-bold tracking-tight ${
+            theme === "dark" ? "text-white" : "text-[#18181B]"
+          }`}
+        >
+          Base<span className={theme === "dark" ? "text-[#2DD4BF]" : "text-[#0F766E]"}>Doctor</span>
         </span>
       )}
     </div>
