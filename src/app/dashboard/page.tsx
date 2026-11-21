@@ -4,18 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/AppSidebar";
+import { RadialHealthGauge } from "@/components/RadialHealthGauge";
 import {
-  AlertCircle,
+  FixSuggestion,
+  getFixSuggestionForIssue,
+  SafeFixModal,
+} from "@/components/SafeFixModal";
+import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
   Clock,
   Download,
-  Info,
+  FileSpreadsheet,
   Key,
-  Package,
   Play,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldCheck,
   ShoppingBag,
@@ -23,6 +28,7 @@ import {
   Store,
   Truck,
   Warehouse,
+  Wrench,
 } from "lucide-react";
 
 function getFriendlyCategoryName(category: string): string {
@@ -51,6 +57,14 @@ export default function DashboardPage() {
   const [activeScanMsg, setActiveScanMsg] = useState<string | null>(null);
   const [issueFilter, setIssueFilter] = useState<"ALL" | "CRITICAL" | "WARNING" | "INFO">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Safe Fix Modal state
+  const [fixTarget, setFixTarget] = useState<{
+    issue: any;
+    issueKey: string;
+    suggestion: FixSuggestion;
+  } | null>(null);
+  const [fixing, setFixing] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -85,7 +99,7 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  const latestScan = scans[0];
+  const latestScan = latestScanDetail || scans[0];
   const previousScan = scans[1];
   const score = latestScan?.healthScore ?? 100;
   const scoreDelta =
@@ -169,32 +183,121 @@ export default function DashboardPage() {
     }
   };
 
+  const handleApplyFix = async (newValue: string, fieldName: string, oldValue: string) => {
+    if (!fixTarget || !latestScan) return;
+    setFixing(true);
+    try {
+      const res = await fetch(`/api/scans/${latestScan.id}/fix`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "FIX",
+          issueId: fixTarget.issueKey,
+          newValue,
+          fieldName,
+          oldValue,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Nie udało się zapisać poprawki.");
+      setLatestScanDetail(data.scan);
+      setScans((prev) =>
+        prev.map((s) => (s.id === data.scan.id ? { ...s, ...data.scan } : s))
+      );
+      setFixTarget(null);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setFixing(false);
+    }
+  };
+
+  const handleRollbackFix = async (issueKey: string) => {
+    if (!latestScan) return;
+    setFixing(true);
+    try {
+      const res = await fetch(`/api/scans/${latestScan.id}/fix`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ROLLBACK",
+          issueId: issueKey,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Nie udało się cofnąć poprawki.");
+      setLatestScanDetail(data.scan);
+      setScans((prev) =>
+        prev.map((s) => (s.id === data.scan.id ? { ...s, ...data.scan } : s))
+      );
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setFixing(false);
+    }
+  };
+
   const issues: any[] = useMemo(() => {
     return latestScanDetail?.issues || [];
   }, [latestScanDetail]);
 
+  const fixedIssues = useMemo(() => {
+    return issues.filter((i) => (i.status || i.details?.status) === "FIXED");
+  }, [issues]);
+
+  const handleExportCorrectionsCsv = () => {
+    if (fixedIssues.length === 0) return;
+    const rows = [
+      ["Obiekt / ID", "Problem", "Poprawiane pole", "Wartość przed", "Nowa wartość", "Data poprawy"],
+      ...fixedIssues.map((iss) => {
+        const snap = iss.fixSnapshot || iss.details?.fixSnapshot || {};
+        return [
+          iss.entityName || iss.affectedIdentifier || iss.affectedEntityId || "",
+          iss.title || "",
+          snap.fieldName || "",
+          snap.oldValue || "",
+          snap.newValue || "",
+          snap.fixedAt ? new Date(snap.fixedAt).toLocaleString("pl-PL") : "",
+        ];
+      }),
+    ];
+    const csvContent = rows
+      .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `BaseDoctor-korekty-${latestScan?.id || "sklep"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filteredIssues = useMemo(() => {
-    return issues.filter((issue) => {
-      if (issueFilter !== "ALL" && issue.severity !== issueFilter) return false;
-      if (searchQuery.trim() !== "") {
-        const q = searchQuery.toLowerCase();
-        const matchTitle = issue.title?.toLowerCase().includes(q);
-        const matchEntity = issue.entityName?.toLowerCase().includes(q);
-        const matchIdentifier = issue.affectedIdentifier?.toLowerCase().includes(q);
-        const matchDesc = issue.description?.toLowerCase().includes(q);
-        return matchTitle || matchEntity || matchIdentifier || matchDesc;
-      }
-      return true;
-    });
+    return issues
+      .map((iss, idx) => ({ ...iss, _idx: idx }))
+      .filter((issue) => {
+        if (issueFilter !== "ALL" && issue.severity !== issueFilter) return false;
+        if (searchQuery.trim() !== "") {
+          const q = searchQuery.toLowerCase();
+          const matchTitle = issue.title?.toLowerCase().includes(q);
+          const matchEntity = issue.entityName?.toLowerCase().includes(q);
+          const matchIdentifier = issue.affectedIdentifier?.toLowerCase().includes(q);
+          const matchDesc = issue.description?.toLowerCase().includes(q);
+          return matchTitle || matchEntity || matchIdentifier || matchDesc;
+        }
+        return true;
+      });
   }, [issues, issueFilter, searchQuery]);
 
-  // Aggregate into 3 friendly merchant business areas
+  // 3 Friendly Business Area Cards
   const businessAreas = useMemo(() => {
-    const productIssues = issues.filter(
+    const openIssues = issues.filter((i) => (i.status || i.details?.status) !== "FIXED");
+    const productIssues = openIssues.filter(
       (i) => i.category === "PRODUCT" || i.category === "PRICING"
     );
-    const inventoryIssues = issues.filter((i) => i.category === "INVENTORY");
-    const orderIssues = issues.filter(
+    const inventoryIssues = openIssues.filter((i) => i.category === "INVENTORY");
+    const orderIssues = openIssues.filter(
       (i) => i.category === "ORDER" || i.category === "SHIPPING"
     );
 
@@ -260,6 +363,17 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#FAF8F5] text-[#18181B]">
+      {/* Safe Fix Modal */}
+      {fixTarget && (
+        <SafeFixModal
+          issue={fixTarget.issue}
+          suggestion={fixTarget.suggestion}
+          submitting={fixing}
+          onClose={() => setFixTarget(null)}
+          onConfirm={handleApplyFix}
+        />
+      )}
+
       {/* Persistent Left Sidebar */}
       <AppSidebar
         connectionsCount={connections.length}
@@ -276,7 +390,7 @@ export default function DashboardPage() {
         {/* Clean Top Header */}
         <header className="sticky top-0 z-30 h-16 px-4 sm:px-8 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E8E4DC] flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-sm sm:text-base font-semibold text-[#18181B] truncate">
+            <h1 className="text-base sm:text-lg font-bold text-[#18181B] truncate">
               Przegląd kondycji sklepu
             </h1>
             {isDemoActive && (
@@ -292,7 +406,7 @@ export default function DashboardPage() {
                 value={selectedConnId}
                 onChange={(e) => setSelectedConnId(e.target.value)}
                 aria-label="Wybierz sklep"
-                className="px-3 py-2 rounded-xl bg-white border border-[#E8E4DC] text-xs font-medium text-[#18181B] focus:outline-none focus:border-[#0F766E]"
+                className="px-3.5 py-2 rounded-xl bg-white border border-[#E8E4DC] text-sm font-medium text-[#18181B] focus:outline-none focus:border-[#0F766E]"
               >
                 {connections.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -303,7 +417,7 @@ export default function DashboardPage() {
             )}
 
             <Link href="/connections" className="btn-studio-secondary hidden sm:inline-flex">
-              <Store className="w-3.5 h-3.5 text-[#71717A]" />
+              <Store className="w-4 h-4 text-[#71717A]" />
               <span>Sklepy ({connections.length})</span>
             </Link>
 
@@ -313,9 +427,9 @@ export default function DashboardPage() {
               className="btn-studio-brand cursor-pointer"
             >
               {scanning ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
-                <Play className="w-3.5 h-3.5 fill-white" />
+                <Play className="w-4 h-4 fill-white" />
               )}
               <span>{scanning ? "Sprawdzanie..." : "Sprawdź sklep teraz"}</span>
             </button>
@@ -323,70 +437,65 @@ export default function DashboardPage() {
         </header>
 
         {/* Main Content Area */}
-        <div className="p-4 sm:p-8 max-w-6xl w-full mx-auto space-y-6">
-          {/* Active Scan Banner */}
+        <div className="p-4 sm:p-8 max-w-6xl w-full mx-auto space-y-7">
           {activeScanMsg && (
-            <div className="p-4 rounded-2xl bg-[#F0FDFA] border border-[#99F6E4] text-[#134E4A] text-xs flex items-center gap-3">
+            <div className="p-4 rounded-2xl bg-[#F0FDFA] border border-[#99F6E4] text-[#134E4A] text-sm flex items-center gap-3">
               <RefreshCw className="w-4 h-4 text-[#0F766E] animate-spin shrink-0" />
               <span className="font-medium">{activeScanMsg}</span>
             </div>
           )}
 
-          {/* Friendly Demo Notice */}
           {isDemoActive && (
             <div className="p-4 rounded-2xl bg-white border border-[#99F6E4] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-3">
                 <span className="pill-demo shrink-0">Tryb przykładowy</span>
-                <p className="text-xs text-[#3F3F46]">
-                  Oglądasz symulację sklepu, aby zobaczyć jak BaseDoctor wskazuje problemy i podpowiada rozwiązania.
+                <p className="text-sm text-[#3F3F46]">
+                  Oglądasz symulację sklepu. Możesz kliknąć <strong>„Napraw 1 kliknięciem”</strong> przy dowolnym błędzie, aby przetestować Asystenta Napraw.
                 </p>
               </div>
               <Link
                 href="/connections"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F766E] hover:text-[#115E59] shrink-0"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F766E] hover:text-[#115E59] shrink-0"
               >
-                <span>Podłącz swój sklep Base.com</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>Podłącz swój sklep</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}
 
-          {/* Loading State */}
           {loading ? (
             <div className="space-y-4">
-              <div className="h-48 rounded-2xl bg-white border border-[#E8E4DC] p-6 animate-pulse" />
+              <div className="h-52 rounded-2xl bg-white border border-[#E8E4DC] p-6 animate-pulse" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-32 rounded-2xl bg-white border border-[#E8E4DC] p-5 animate-pulse" />
+                  <div key={i} className="h-36 rounded-2xl bg-white border border-[#E8E4DC] p-5 animate-pulse" />
                 ))}
               </div>
             </div>
           ) : connections.length === 0 ? (
-            /* Warm Onboarding Empty State */
-            <div className="studio-card p-8 sm:p-12 text-center">
+            <div className="studio-card p-10 sm:p-14 text-center">
               <div className="max-w-lg mx-auto space-y-5">
-                <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] border border-[#99F6E4] text-[#0F766E] mx-auto flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-[#F0FDFA] border border-[#99F6E4] text-[#0F766E] mx-auto flex items-center justify-center">
+                  <ShieldCheck className="w-7 h-7" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-xl font-bold tracking-tight text-[#18181B]">
+                  <h2 className="text-2xl font-bold tracking-tight text-[#18181B]">
                     Sprawdź, czy w Twoim sklepie wszystko działa jak należy
                   </h2>
-                  <p className="text-sm text-[#52525B] leading-relaxed">
+                  <p className="text-sm sm:text-base text-[#52525B] leading-relaxed">
                     Podłącz swój sklep w Base.com, aby w 30 sekund wykryć błędy w produktach,
-                    braki w stanach magazynowych i opóźnione wysyłki. BaseDoctor działa tylko
-                    w trybie podglądu — nigdy niczego nie zmienia w Twoim sklepie.
+                    braki w stanach magazynowych i opóźnione wysyłki.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                  <Link href="/connections" className="btn-studio-brand px-5 py-3">
+                  <Link href="/connections" className="btn-studio-brand px-6 py-3">
                     <Key className="w-4 h-4" />
                     <span>Połącz swój sklep Base.com</span>
                   </Link>
                   <button
                     onClick={handleLoadDemo}
                     disabled={scanning}
-                    className="btn-studio-secondary px-5 py-3 cursor-pointer"
+                    className="btn-studio-secondary px-6 py-3 cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4 text-[#0F766E]" />
                     <span>Zobacz na sklepie przykładowym</span>
@@ -396,9 +505,9 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
-              {/* 1. HERO STORE HEALTH BANNER — Answers: "Is my store operating correctly?" */}
+              {/* 1. HERO STORE HEALTH BANNER WITH SVG RADIAL GAUGE */}
               <section className="studio-card p-6 sm:p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                   <div className="lg:col-span-8 space-y-4">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span
@@ -411,7 +520,7 @@ export default function DashboardPage() {
                         }
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`w-2 h-2 rounded-full ${
                             score >= 80
                               ? "bg-[#10B981]"
                               : score >= 50
@@ -426,7 +535,7 @@ export default function DashboardPage() {
                           : "Pilne sprawy do poprawy"}
                       </span>
                       {latestScan && (
-                        <span className="text-xs text-[#71717A]">
+                        <span className="text-xs sm:text-sm text-[#71717A]">
                           Ostatnie sprawdzenie:{" "}
                           {new Date(
                             latestScan.completedAt || latestScan.startedAt
@@ -439,7 +548,7 @@ export default function DashboardPage() {
                       <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#18181B]">
                         {latestScan ? healthHeadline : "Sklep gotowy do pierwszego sprawdzenia"}
                       </h2>
-                      <p className="text-sm text-[#52525B] leading-relaxed max-w-2xl">
+                      <p className="text-sm sm:text-base text-[#52525B] leading-relaxed max-w-2xl">
                         {latestScan ? (
                           <>
                             Przejrzeliśmy{" "}
@@ -453,18 +562,18 @@ export default function DashboardPage() {
                             .{" "}
                             {latestScan.criticalCount > 0 ? (
                               <>
-                                Znaleźliśmy{" "}
+                                Pozostało{" "}
                                 <strong className="text-[#BE123C]">
                                   {latestScan.criticalCount} pilnych spraw
-                                </strong>
-                                , które mogą blokować sprzedaż lub wysyłkę, oraz{" "}
+                                </strong>{" "}
+                                oraz{" "}
                                 <strong className="text-[#B45309]">
                                   {latestScan.warningCount} rzeczy do poprawy
                                 </strong>
                                 .
                               </>
                             ) : (
-                              "Nie wykryliśmy żadnych pilnych błędów blokujących sprzedaż."
+                              "Wszystkie pilne błędy blokujące sprzedaż zostały rozwiązane!"
                             )}
                           </>
                         ) : (
@@ -473,13 +582,24 @@ export default function DashboardPage() {
                       </p>
                     </div>
 
+                    {/* Time Saved Business Banner */}
+                    {latestScan && (
+                      <div className="inline-flex flex-wrap items-center gap-2 px-3.5 py-2 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] text-xs sm:text-sm text-[#3F3F46]">
+                        <Clock className="w-4 h-4 text-[#0F766E] shrink-0" />
+                        <span>
+                          Ręczne poprawianie w Base.com: <strong>~45 min</strong> • Z Asystentem BaseDoctor:{" "}
+                          <strong className="text-[#0F766E]">ok. 2 min</strong>
+                        </span>
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                       <button
                         onClick={handleRunQuickScan}
                         disabled={scanning}
                         className="btn-studio-primary cursor-pointer"
                       >
-                        <RefreshCw className={`w-3.5 h-3.5 ${scanning ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`w-4 h-4 ${scanning ? "animate-spin" : ""}`} />
                         <span>{scanning ? "Sprawdzanie..." : "Sprawdź sklep ponownie"}</span>
                       </button>
 
@@ -490,86 +610,58 @@ export default function DashboardPage() {
                             download
                             className="btn-studio-secondary"
                           >
-                            <Download className="w-3.5 h-3.5 text-[#0F766E]" />
+                            <Download className="w-4 h-4 text-[#0F766E]" />
                             <span>Pobierz raport PDF</span>
                           </a>
-                          <Link
-                            href={`/scans/${latestScan.id}`}
-                            className="text-xs font-semibold text-[#0F766E] hover:text-[#115E59] px-2 py-1.5 inline-flex items-center gap-1 transition"
-                          >
-                            <span>Otwórz pełny raport</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Link>
+
+                          {fixedIssues.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleExportCorrectionsCsv}
+                              className="btn-studio-secondary border-[#99F6E4] bg-[#F0FDFA] text-[#0F766E] cursor-pointer"
+                            >
+                              <FileSpreadsheet className="w-4 h-4" />
+                              <span>Pobierz korekty CSV ({fixedIssues.length})</span>
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
                   </div>
 
-                  {/* Right Visual Score Meter */}
-                  <div className="lg:col-span-4 p-5 rounded-2xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#52525B]">
-                        Ogólna kondycja sklepu
-                      </span>
-                      {scoreDelta !== null && (
-                        <span
-                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                            scoreDelta >= 0
-                              ? "bg-[#ECFDF5] text-[#047857]"
-                              : "bg-[#FFF1F2] text-[#BE123C]"
-                          }`}
-                        >
-                          {scoreDelta >= 0 ? `+${scoreDelta}` : scoreDelta} pkt
-                        </span>
-                      )}
-                    </div>
+                  {/* Right Visual Radial Health Gauge */}
+                  <div className="lg:col-span-4 p-6 rounded-2xl bg-[#FAF8F5] border border-[#E8E4DC] flex flex-col items-center space-y-4">
+                    <RadialHealthGauge score={latestScan ? score : 100} size={156} />
 
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-5xl font-bold tracking-tight text-[#18181B] tabular-nums">
-                        {latestScan ? score : "—"}
+                    {scoreDelta !== null && (
+                      <span
+                        className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                          scoreDelta >= 0
+                            ? "bg-[#ECFDF5] text-[#047857]"
+                            : "bg-[#FFF1F2] text-[#BE123C]"
+                        }`}
+                      >
+                        {scoreDelta >= 0 ? `+${scoreDelta}` : scoreDelta} pkt od poprzedniego sprawdzenia
                       </span>
-                      <span className="text-lg font-medium text-[#71717A]">/ 100</span>
-                    </div>
+                    )}
 
-                    {/* 3-Segment Health Breakdown Bar */}
                     {latestScan && (
-                      <div className="space-y-2 pt-2 border-t border-[#E8E4DC]">
+                      <div className="w-full space-y-2 pt-2 border-t border-[#E8E4DC]">
                         <div className="w-full h-2.5 rounded-full bg-[#EAE6DF] overflow-hidden flex gap-0.5">
                           {critPct > 0 && (
-                            <div
-                              className="h-full bg-[#E11D48]"
-                              style={{ width: `${critPct}%` }}
-                              title={`Pilne: ${latestScan.criticalCount}`}
-                            />
+                            <div className="h-full bg-[#E11D48]" style={{ width: `${critPct}%` }} />
                           )}
                           {warnPct > 0 && (
-                            <div
-                              className="h-full bg-[#D97706]"
-                              style={{ width: `${warnPct}%` }}
-                              title={`Warto poprawić: ${latestScan.warningCount}`}
-                            />
+                            <div className="h-full bg-[#D97706]" style={{ width: `${warnPct}%` }} />
                           )}
                           {infoPct > 0 && (
-                            <div
-                              className="h-full bg-[#0F766E]"
-                              style={{ width: `${infoPct}%` }}
-                              title={`Wskazówki: ${latestScan.infoCount}`}
-                            />
+                            <div className="h-full bg-[#0F766E]" style={{ width: `${infoPct}%` }} />
                           )}
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#52525B]">
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
-                            Pilne: <strong className="text-[#18181B]">{latestScan.criticalCount}</strong>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-[#D97706]" />
-                            Do poprawy: <strong className="text-[#18181B]">{latestScan.warningCount}</strong>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-[#0F766E]" />
-                            Wskazówki: <strong className="text-[#18181B]">{latestScan.infoCount}</strong>
-                          </span>
+                        <div className="flex items-center justify-between text-xs text-[#52525B]">
+                          <span>Pilne: <strong className="text-[#18181B]">{latestScan.criticalCount}</strong></span>
+                          <span>Poprawa: <strong className="text-[#18181B]">{latestScan.warningCount}</strong></span>
+                          <span>Naprawione: <strong className="text-[#047857]">{fixedIssues.length}</strong></span>
                         </div>
                       </div>
                     )}
@@ -577,14 +669,12 @@ export default function DashboardPage() {
                 </div>
               </section>
 
-              {/* 2. 3 BUSINESS AREA CARDS — Answers: "What needs my attention?" */}
+              {/* 2. 3 BUSINESS AREA CARDS */}
               {latestScan && (
                 <section className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-[#18181B]">
-                      Stan trzech głównych obszarów sklepu
-                    </h2>
-                  </div>
+                  <h2 className="text-base font-bold text-[#18181B]">
+                    Stan trzech głównych obszarów sklepu
+                  </h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {businessAreas.map((area) => {
@@ -597,23 +687,23 @@ export default function DashboardPage() {
                           : { cls: "pill-healthy", label: "Wszystko dobrze" };
 
                       return (
-                        <div key={area.title} className="studio-card p-5 space-y-4">
+                        <div key={area.title} className="studio-card p-6 space-y-4">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="w-9 h-9 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] flex items-center justify-center text-[#0F766E]">
-                              <Icon className="w-4 h-4" />
+                            <div className="w-10 h-10 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] flex items-center justify-center text-[#0F766E]">
+                              <Icon className="w-5 h-5" />
                             </div>
                             <span className={statusPill.cls}>{statusPill.label}</span>
                           </div>
 
                           <div>
-                            <h3 className="text-sm font-semibold text-[#18181B]">{area.title}</h3>
-                            <p className="text-xs text-[#71717A] mt-0.5 leading-relaxed">
+                            <h3 className="text-base font-bold text-[#18181B]">{area.title}</h3>
+                            <p className="text-xs sm:text-sm text-[#71717A] mt-1 leading-relaxed">
                               {area.subtitle}
                             </p>
                           </div>
 
                           <div className="space-y-2 pt-2 border-t border-[#F1EFEA]">
-                            <div className="w-full h-1.5 bg-[#F3F0EA] rounded-full overflow-hidden">
+                            <div className="w-full h-2 bg-[#F3F0EA] rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${
                                   area.urgentCount > 0
@@ -625,15 +715,15 @@ export default function DashboardPage() {
                                 style={{ width: `${area.score}%` }}
                               />
                             </div>
-                            <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center justify-between text-xs sm:text-sm">
                               <span className="text-[#52525B]">
                                 {area.count === 0
-                                  ? "Brak wykrytych problemów"
+                                  ? "Brak otwartych spraw"
                                   : area.count === 1
                                   ? "1 sprawa do przejrzenia"
                                   : `${area.count} spraw do przejrzenia`}
                               </span>
-                              <span className="font-semibold text-[#18181B] tabular-nums">
+                              <span className="font-bold text-[#18181B] tabular-nums">
                                 {area.score}%
                               </span>
                             </div>
@@ -645,33 +735,33 @@ export default function DashboardPage() {
                 </section>
               )}
 
-              {/* 3. ACTIONABLE RECOMMENDATIONS — Answers: "What should I do next?" */}
+              {/* 3. ACTIONABLE RECOMMENDATIONS WITH 1-CLICK SAFE FIX */}
               {latestScan && (
                 <section className="space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-base font-bold text-[#18181B]">
+                      <h2 className="text-lg font-bold text-[#18181B]">
                         Co warto teraz naprawić w sklepie
                       </h2>
-                      <p className="text-xs text-[#71717A]">
-                        Najważniejsze sprawy ułożone od tych, które najbardziej wpływają na sprzedaż i wysyłkę.
+                      <p className="text-sm text-[#71717A]">
+                        Przy sprawach katalogowych i magazynowych możesz kliknąć „Napraw 1 kliknięciem”, zobaczyć podgląd i zatwierdzić zmianę.
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="inline-flex p-1 rounded-xl bg-[#F3F0EA] border border-[#E8E4DC] text-xs">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <div className="inline-flex p-1 rounded-xl bg-[#F3F0EA] border border-[#E8E4DC]">
                         {(
                           [
                             { key: "ALL", label: "Wszystkie" },
                             { key: "CRITICAL", label: `Pilne (${latestScan.criticalCount})` },
-                            { key: "WARNING", label: `Do poprawy (${latestScan.warningCount})` },
+                            { key: "WARNING", label: `Poprawa (${latestScan.warningCount})` },
                             { key: "INFO", label: "Wskazówki" },
                           ] as const
                         ).map((tab) => (
                           <button
                             key={tab.key}
                             onClick={() => setIssueFilter(tab.key)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition cursor-pointer ${
                               issueFilter === tab.key
                                 ? "bg-white text-[#18181B] font-semibold shadow-xs"
                                 : "text-[#52525B] hover:text-[#18181B]"
@@ -683,13 +773,13 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-[#A1A1AA] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <Search className="w-4 h-4 text-[#A1A1AA] absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Szukaj produktu lub zamówienia..."
-                          className="pl-8 pr-3 py-2 rounded-xl bg-white border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] w-52 sm:w-60"
+                          placeholder="Szukaj produktu..."
+                          className="pl-9 pr-3.5 py-2 rounded-xl bg-white border border-[#E8E4DC] text-sm text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] w-48 sm:w-56"
                         />
                       </div>
                     </div>
@@ -697,91 +787,130 @@ export default function DashboardPage() {
 
                   {filteredIssues.length === 0 ? (
                     <div className="studio-card p-10 text-center space-y-2">
-                      <CheckCircle2 className="w-8 h-8 text-[#10B981] mx-auto" />
-                      <p className="text-sm font-semibold text-[#18181B]">
+                      <CheckCircle2 className="w-9 h-9 text-[#10B981] mx-auto" />
+                      <p className="text-base font-semibold text-[#18181B]">
                         Brak spraw pasujących do wybranych filtrów
-                      </p>
-                      <p className="text-xs text-[#71717A]">
-                        Zmień filtr powyżej lub uruchom kolejne sprawdzenie sklepu.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {filteredIssues.slice(0, 5).map((issue, idx) => {
+                    <div className="space-y-4">
+                      {filteredIssues.slice(0, 6).map((issue) => {
+                        const issueKey = issue.id || String(issue._idx);
+                        const isFixed = (issue.status || issue.details?.status) === "FIXED";
+                        const fixSnapshot = issue.fixSnapshot || issue.details?.fixSnapshot;
+                        const suggestion = getFixSuggestionForIssue(issue);
                         const isUrgent = issue.severity === "CRITICAL";
                         const isWarning = issue.severity === "WARNING";
 
                         return (
                           <div
-                            key={issue.id || idx}
-                            className="studio-card-hover p-5 sm:p-6 space-y-4"
+                            key={issueKey}
+                            className={`studio-card-hover p-6 space-y-4 ${
+                              isFixed ? "border-[#A7F3D0] bg-[#ECFDF5]/35" : ""
+                            }`}
                           >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span
-                                  className={
-                                    isUrgent
-                                      ? "pill-urgent"
+                                {isFixed ? (
+                                  <span className="pill-healthy">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Naprawiono bezpiecznie
+                                  </span>
+                                ) : (
+                                  <span
+                                    className={
+                                      isUrgent
+                                        ? "pill-urgent"
+                                        : isWarning
+                                        ? "pill-warning"
+                                        : "pill-neutral"
+                                    }
+                                  >
+                                    {isUrgent
+                                      ? "Pilne — blokuje sprzedaż"
                                       : isWarning
-                                      ? "pill-warning"
-                                      : "pill-neutral"
-                                  }
-                                >
-                                  {isUrgent
-                                    ? "Pilne — blokuje sprzedaż"
-                                    : isWarning
-                                    ? "Warto poprawić"
-                                    : "Wskazówka"}
-                                </span>
+                                      ? "Warto poprawić"
+                                      : "Wskazówka"}
+                                  </span>
+                                )}
                                 <span className="pill-neutral">
                                   {getFriendlyCategoryName(issue.category)}
                                 </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2 text-xs text-[#71717A]">
                                 {(issue.affectedIdentifier || issue.entityName) && (
-                                  <span className="font-mono text-[11px] bg-[#FAF8F5] border border-[#E8E4DC] text-[#18181B] px-2.5 py-0.5 rounded-full">
+                                  <span className="font-mono text-xs bg-[#FAF8F5] border border-[#E8E4DC] text-[#18181B] px-2.5 py-0.5 rounded-full">
                                     {issue.entityName || issue.affectedIdentifier}
                                   </span>
                                 )}
-                                {issue.estimatedFixTime && (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#52525B]">
-                                    <Clock className="w-3 h-3 text-[#0F766E]" />
-                                    Zajmie ok. {issue.estimatedFixTime}
-                                  </span>
+                              </div>
+
+                              {/* Action Button: Fix 1-Click OR Rollback */}
+                              <div className="flex items-center gap-2.5 shrink-0">
+                                {isFixed ? (
+                                  <button
+                                    type="button"
+                                    disabled={fixing}
+                                    onClick={() => handleRollbackFix(issueKey)}
+                                    className="btn-studio-secondary py-2 px-3.5 text-xs cursor-pointer"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Cofnij zmianę</span>
+                                  </button>
+                                ) : (
+                                  suggestion && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setFixTarget({ issue, issueKey, suggestion })
+                                      }
+                                      className="btn-studio-brand py-2 px-4 text-xs cursor-pointer"
+                                    >
+                                      <Wrench className="w-3.5 h-3.5" />
+                                      <span>Napraw 1 kliknięciem</span>
+                                    </button>
+                                  )
                                 )}
                               </div>
                             </div>
 
+                            {isFixed && fixSnapshot && (
+                              <div className="p-3.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] text-xs sm:text-sm text-[#047857] flex flex-wrap items-center justify-between gap-2">
+                                <span>
+                                  <strong>Zapisana poprawka ({fixSnapshot.fieldName}):</strong>{" "}
+                                  zmieniono z <span className="line-through opacity-75">{fixSnapshot.oldValue}</span> na{" "}
+                                  <strong>{fixSnapshot.newValue}</strong>
+                                </span>
+                              </div>
+                            )}
+
                             <div>
-                              <h3 className="text-sm sm:text-base font-semibold text-[#18181B]">
+                              <h3 className="text-base font-bold text-[#18181B]">
                                 {issue.title}
                               </h3>
                               {issue.description && (
-                                <p className="text-xs text-[#52525B] mt-1 leading-relaxed">
+                                <p className="text-sm text-[#52525B] mt-1 leading-relaxed">
                                   {issue.description}
                                 </p>
                               )}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                              <div className="p-3.5 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-1">
-                                <div className="text-[11px] font-semibold text-[#B45309] flex items-center gap-1.5">
-                                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                              <div className="p-4 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-1">
+                                <div className="text-xs font-semibold text-[#B45309] flex items-center gap-1.5">
+                                  <AlertTriangle className="w-4 h-4 shrink-0" />
                                   <span>Co to oznacza dla sprzedaży</span>
                                 </div>
-                                <p className="text-xs text-[#3F3F46] leading-relaxed">
+                                <p className="text-xs sm:text-sm text-[#3F3F46] leading-relaxed">
                                   {issue.businessImpact ||
                                     "Może obniżać widoczność ofert lub wydłużać obsługę zamówień."}
                                 </p>
                               </div>
 
-                              <div className="p-3.5 rounded-xl bg-[#F0FDFA] border border-[#CCFBF1] space-y-1">
-                                <div className="text-[11px] font-semibold text-[#0F766E] flex items-center gap-1.5">
-                                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                              <div className="p-4 rounded-xl bg-[#F0FDFA] border border-[#CCFBF1] space-y-1">
+                                <div className="text-xs font-semibold text-[#0F766E] flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                                   <span>Co należy zrobić</span>
                                 </div>
-                                <p className="text-xs text-[#134E4A] leading-relaxed">
+                                <p className="text-xs sm:text-sm text-[#134E4A] leading-relaxed">
                                   {issue.suggestedFix ||
                                     "Uzupełnij brakujące dane w karcie produktu lub zamówienia w Base.com."}
                                 </p>
@@ -792,15 +921,15 @@ export default function DashboardPage() {
                       })}
 
                       <div className="flex items-center justify-between pt-2">
-                        <span className="text-xs text-[#71717A]">
-                          Pokazujemy {Math.min(5, filteredIssues.length)} z {filteredIssues.length} spraw
+                        <span className="text-sm text-[#71717A]">
+                          Pokazujemy {Math.min(6, filteredIssues.length)} z {filteredIssues.length} spraw
                         </span>
                         <Link
                           href={`/scans/${latestScan.id}`}
                           className="btn-studio-secondary"
                         >
-                          <span>Zobacz wszystkie sprawy ({issues.length})</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <span>Otwórz wszystkie sprawy ({issues.length})</span>
+                          <ArrowRight className="w-4 h-4" />
                         </Link>
                       </div>
                     </div>
@@ -809,22 +938,19 @@ export default function DashboardPage() {
               )}
 
               {/* 4. SECONDARY SECTION: STORE HEALTH HISTORY & TREND */}
-              <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-2">
-                {/* Visual Health Trend */}
+              <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2">
                 <div className="lg:col-span-6 studio-card p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-sm font-semibold text-[#18181B]">
-                        Jak zmieniała się kondycja sklepu
-                      </h2>
-                      <p className="text-xs text-[#71717A]">
-                        Wyniki ostatnich sprawdzeń (im wyższy słupek, tym zdrowszy sklep)
-                      </p>
-                    </div>
+                  <div>
+                    <h2 className="text-base font-bold text-[#18181B]">
+                      Jak zmieniała się kondycja sklepu
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#71717A]">
+                      Wyniki ostatnich sprawdzeń
+                    </p>
                   </div>
 
                   {chartPoints.length > 0 ? (
-                    <div className="h-44 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] p-4 flex items-end justify-between gap-3">
+                    <div className="h-48 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] p-4 flex items-end justify-between gap-3">
                       {chartPoints.map((pt, idx) => {
                         const barHeight = Math.max(18, Math.min(100, pt.healthScore));
                         const isLatest = idx === chartPoints.length - 1;
@@ -833,10 +959,10 @@ export default function DashboardPage() {
                             key={pt.id}
                             className="flex-1 flex flex-col items-center justify-end h-full"
                           >
-                            <span className="text-xs font-semibold text-[#18181B] mb-1.5 tabular-nums">
+                            <span className="text-xs font-bold text-[#18181B] mb-1.5 tabular-nums">
                               {pt.healthScore}%
                             </span>
-                            <div className="w-full max-w-[44px] h-24 bg-[#EAE6DF] rounded-xl flex items-end overflow-hidden p-0.5">
+                            <div className="w-full max-w-[46px] h-28 bg-[#EAE6DF] rounded-xl flex items-end overflow-hidden p-0.5">
                               <div
                                 className={`w-full rounded-lg transition-all duration-300 ${
                                   isLatest
@@ -848,7 +974,7 @@ export default function DashboardPage() {
                                 style={{ height: `${barHeight}%` }}
                               />
                             </div>
-                            <span className="mt-2 text-[11px] text-[#71717A] tabular-nums">
+                            <span className="mt-2 text-xs text-[#71717A] tabular-nums">
                               {new Date(pt.completedAt || pt.startedAt).toLocaleDateString(
                                 "pl-PL",
                                 { day: "2-digit", month: "2-digit" }
@@ -859,33 +985,32 @@ export default function DashboardPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="h-44 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] flex items-center justify-center text-xs text-[#71717A]">
-                      Wykres pojawi się po wykonaniu pierwszego sprawdzenia sklepu.
+                    <div className="h-48 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] flex items-center justify-center text-sm text-[#71717A]">
+                      Wykres pojawi się po wykonaniu pierwszego sprawdzenia.
                     </div>
                   )}
                 </div>
 
-                {/* Recent Checks List */}
                 <div className="lg:col-span-6 studio-card p-6 flex flex-col justify-between space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold text-[#18181B]">
+                      <h2 className="text-base font-bold text-[#18181B]">
                         Ostatnie raporty
                       </h2>
-                      <p className="text-xs text-[#71717A]">
+                      <p className="text-xs sm:text-sm text-[#71717A]">
                         Poprzednie sprawdzenia zapisane na Twoim koncie
                       </p>
                     </div>
                     <Link
                       href="/scans"
-                      className="text-xs font-semibold text-[#0F766E] hover:underline"
+                      className="text-sm font-semibold text-[#0F766E] hover:underline"
                     >
                       Wszystkie ({scans.length})
                     </Link>
                   </div>
 
                   {scans.length === 0 ? (
-                    <div className="py-10 text-center text-xs text-[#71717A]">
+                    <div className="py-10 text-center text-sm text-[#71717A]">
                       Brak wcześniejszych raportów.
                     </div>
                   ) : (
@@ -893,11 +1018,11 @@ export default function DashboardPage() {
                       {scans.slice(0, 4).map((scan) => (
                         <div
                           key={scan.id}
-                          className="py-3 flex items-center justify-between gap-3"
+                          className="py-3.5 flex items-center justify-between gap-3"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-bold tabular-nums shrink-0 ${
+                              className={`px-3 py-1 rounded-full text-xs font-bold tabular-nums shrink-0 ${
                                 scan.healthScore >= 80
                                   ? "bg-[#ECFDF5] text-[#047857]"
                                   : scan.healthScore >= 50
@@ -908,10 +1033,10 @@ export default function DashboardPage() {
                               {scan.healthScore}%
                             </span>
                             <div className="min-w-0">
-                              <div className="text-xs font-semibold text-[#18181B] truncate">
+                              <div className="text-sm font-semibold text-[#18181B] truncate">
                                 {scan.shopConnection?.name || "Sklep Base.com"}
                               </div>
-                              <div className="text-[11px] text-[#71717A]">
+                              <div className="text-xs text-[#71717A]">
                                 {new Date(
                                   scan.completedAt || scan.startedAt
                                 ).toLocaleDateString("pl-PL")}{" "}
@@ -920,18 +1045,18 @@ export default function DashboardPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             <a
                               href={`/api/scans/${scan.id}/pdf`}
                               download
                               className="p-2 rounded-lg text-[#71717A] hover:text-[#18181B] hover:bg-[#FAF8F5] transition"
                               title="Pobierz PDF"
                             >
-                              <Download className="w-3.5 h-3.5" />
+                              <Download className="w-4 h-4" />
                             </a>
                             <Link
                               href={`/scans/${scan.id}`}
-                              className="btn-studio-secondary py-1.5 px-3 text-[11px]"
+                              className="btn-studio-secondary py-1.5 px-3.5 text-xs"
                             >
                               Otwórz
                             </Link>

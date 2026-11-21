@@ -65,7 +65,7 @@ export function Navbar() {
 
           {/* Public Navigation Links */}
           {pathname === "/" && (
-            <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-[#52525B]">
+            <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#52525B]">
               <a href="#jak-to-dziala" className="hover:text-[#18181B] transition">
                 Jak to działa
               </a>

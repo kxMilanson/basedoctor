@@ -216,9 +216,9 @@ export default function ConnectionsPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-[#18181B]">
-                    Połączenie bezpieczne — tylko do odczytu
+                    Połączenie bezpieczne — tylko do odczytu + Asystent Napraw z potwierdzeniem
                   </h2>
-                  <span className="pill-healthy">Bez zmian w sklepie</span>
+                  <span className="pill-healthy">Bez zmian bez Twojej zgody</span>
                 </div>
                 <p className="text-xs text-[#52525B] max-w-2xl leading-relaxed">
                   Twój klucz dostępu jest bezpiecznie zaszyfrowany. BaseDoctor wyłącznie przegląda

@@ -119,10 +119,10 @@ export function AppSidebar({
               </span>
             </div>
             <div className="mt-1.5 flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-[#18181B] truncate">
+              <span className="text-sm font-semibold text-[#18181B] truncate">
                 {activeStoreName}
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#A1A1AA] group-hover:text-[#18181B] shrink-0 transition" />
+              <ChevronRight className="w-4 h-4 text-[#A1A1AA] group-hover:text-[#18181B] shrink-0 transition" />
             </div>
           </Link>
         </div>
@@ -139,7 +139,7 @@ export function AppSidebar({
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm transition ${
                   isActive
                     ? "bg-[#FFFFFF] text-[#18181B] font-semibold border border-[#E8E4DC] shadow-xs"
                     : "text-[#3F3F46] hover:text-[#18181B] hover:bg-[#EAE6DF]/60 font-medium border border-transparent"

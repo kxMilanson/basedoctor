@@ -414,6 +414,209 @@ export const dataStore = {
     };
   },
 
+  async applyIssueFix(
+    scanId: string,
+    userId: string,
+    issueId: string,
+    newValue: string,
+    fieldName: string,
+    oldValue?: string
+  ) {
+    const hasDb = await checkDbConnection();
+    const recalculateMetrics = (issuesList: any[]) => {
+      const openIssues = issuesList.filter((i) => (i.status || i.details?.status) !== "FIXED");
+      const criticalCount = openIssues.filter((i) => i.severity === "CRITICAL").length;
+      const warningCount = openIssues.filter((i) => i.severity === "WARNING").length;
+      const infoCount = openIssues.filter((i) => i.severity === "INFO").length;
+      const healthScore = Math.max(
+        0,
+        Math.min(100, 100 - criticalCount * 10 - warningCount * 4 - infoCount * 1)
+      );
+      return { criticalCount, warningCount, infoCount, healthScore };
+    };
+
+    if (hasDb) {
+      const scan = await prisma.diagnosticScan.findFirst({
+        where: { id: scanId, userId },
+        include: { issues: true, shopConnection: { select: { name: true } } },
+      });
+      if (!scan) return null;
+
+      const targetIssue = scan.issues.find(
+        (iss, idx) => iss.id === issueId || String(idx) === issueId
+      );
+      if (!targetIssue) return null;
+
+      const prevDetails = (targetIssue.details as Record<string, any>) || {};
+      const fixSnapshot = {
+        oldValue: oldValue || prevDetails.currentValue || "Błędna wartość",
+        newValue,
+        fieldName,
+        fixedAt: new Date().toISOString(),
+      };
+
+      await prisma.diagnosticIssue.update({
+        where: { id: targetIssue.id },
+        data: {
+          details: {
+            ...prevDetails,
+            status: "FIXED",
+            fixSnapshot,
+          },
+        },
+      });
+
+      const updatedIssues = scan.issues.map((iss) =>
+        iss.id === targetIssue.id
+          ? {
+              ...iss,
+              status: "FIXED",
+              fixSnapshot,
+              details: { ...prevDetails, status: "FIXED", fixSnapshot },
+            }
+          : {
+              ...iss,
+              status: (iss.details as any)?.status || "OPEN",
+              fixSnapshot: (iss.details as any)?.fixSnapshot || null,
+            }
+      );
+
+      const metrics = recalculateMetrics(updatedIssues);
+      await prisma.diagnosticScan.update({
+        where: { id: scan.id },
+        data: metrics,
+      });
+
+      return { ...scan, ...metrics, issues: updatedIssues };
+    }
+
+    await memoryStore.init();
+    const scan = memoryStore.scans.get(scanId);
+    if (!scan || scan.userId !== userId) return null;
+
+    const issues = memoryStore.issues.get(scanId) || [];
+    let found = false;
+    const updatedIssues = issues.map((iss: any, idx: number) => {
+      if (iss.id === issueId || String(idx) === issueId || `${iss.code}_${idx}` === issueId) {
+        found = true;
+        return {
+          ...iss,
+          status: "FIXED",
+          fixSnapshot: {
+            oldValue: oldValue || iss.affectedIdentifier || "Wartość przed poprawką",
+            newValue,
+            fieldName,
+            fixedAt: new Date().toISOString(),
+          },
+        };
+      }
+      return iss;
+    });
+
+    if (!found) return null;
+
+    const metrics = recalculateMetrics(updatedIssues);
+    const updatedScan = { ...scan, ...metrics };
+    memoryStore.scans.set(scanId, updatedScan);
+    memoryStore.issues.set(scanId, updatedIssues);
+
+    const conn = memoryStore.connections.get(scan.shopConnectionId);
+    return {
+      ...updatedScan,
+      shopConnection: { name: conn?.name || "Sklep Base.com" },
+      issues: updatedIssues,
+    };
+  },
+
+  async rollbackIssueFix(scanId: string, userId: string, issueId: string) {
+    const hasDb = await checkDbConnection();
+    const recalculateMetrics = (issuesList: any[]) => {
+      const openIssues = issuesList.filter((i) => (i.status || i.details?.status) !== "FIXED");
+      const criticalCount = openIssues.filter((i) => i.severity === "CRITICAL").length;
+      const warningCount = openIssues.filter((i) => i.severity === "WARNING").length;
+      const infoCount = openIssues.filter((i) => i.severity === "INFO").length;
+      const healthScore = Math.max(
+        0,
+        Math.min(100, 100 - criticalCount * 10 - warningCount * 4 - infoCount * 1)
+      );
+      return { criticalCount, warningCount, infoCount, healthScore };
+    };
+
+    if (hasDb) {
+      const scan = await prisma.diagnosticScan.findFirst({
+        where: { id: scanId, userId },
+        include: { issues: true, shopConnection: { select: { name: true } } },
+      });
+      if (!scan) return null;
+
+      const targetIssue = scan.issues.find(
+        (iss, idx) => iss.id === issueId || String(idx) === issueId
+      );
+      if (!targetIssue) return null;
+
+      const prevDetails = (targetIssue.details as Record<string, any>) || {};
+      const { fixSnapshot: _removed, ...restDetails } = prevDetails;
+
+      await prisma.diagnosticIssue.update({
+        where: { id: targetIssue.id },
+        data: {
+          details: {
+            ...restDetails,
+            status: "OPEN",
+          },
+        },
+      });
+
+      const updatedIssues = scan.issues.map((iss) =>
+        iss.id === targetIssue.id
+          ? {
+              ...iss,
+              status: "OPEN",
+              fixSnapshot: null,
+              details: { ...restDetails, status: "OPEN" },
+            }
+          : {
+              ...iss,
+              status: (iss.details as any)?.status || "OPEN",
+              fixSnapshot: (iss.details as any)?.fixSnapshot || null,
+            }
+      );
+
+      const metrics = recalculateMetrics(updatedIssues);
+      await prisma.diagnosticScan.update({
+        where: { id: scan.id },
+        data: metrics,
+      });
+
+      return { ...scan, ...metrics, issues: updatedIssues };
+    }
+
+    await memoryStore.init();
+    const scan = memoryStore.scans.get(scanId);
+    if (!scan || scan.userId !== userId) return null;
+
+    const issues = memoryStore.issues.get(scanId) || [];
+    const updatedIssues = issues.map((iss: any, idx: number) => {
+      if (iss.id === issueId || String(idx) === issueId || `${iss.code}_${idx}` === issueId) {
+        const { fixSnapshot: _removed, ...rest } = iss;
+        return { ...rest, status: "OPEN" };
+      }
+      return iss;
+    });
+
+    const metrics = recalculateMetrics(updatedIssues);
+    const updatedScan = { ...scan, ...metrics };
+    memoryStore.scans.set(scanId, updatedScan);
+    memoryStore.issues.set(scanId, updatedIssues);
+
+    const conn = memoryStore.connections.get(scan.shopConnectionId);
+    return {
+      ...updatedScan,
+      shopConnection: { name: conn?.name || "Sklep Base.com" },
+      issues: updatedIssues,
+    };
+  },
+
   async getAdminStats() {
     const hasDb = await checkDbConnection();
     if (hasDb) {
