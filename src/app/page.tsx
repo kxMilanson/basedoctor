@@ -803,6 +803,21 @@ export default function HomePage() {
               />
             </div>
 
+            <label className="flex items-start gap-2.5 text-xs text-zinc-400 cursor-pointer">
+              <input
+                type="checkbox"
+                required
+                className="mt-0.5 rounded border-white/20 bg-white/5 text-[#2DD4BF] focus:ring-[#2DD4BF]"
+              />
+              <span className="leading-relaxed">
+                Zapoznałem/am się z{" "}
+                <Link href="/polityka-prywatnosci" className="text-[#2DD4BF] hover:underline">
+                  Polityką Prywatności
+                </Link>{" "}
+                i wyrażam zgodę na kontakt w celu udzielenia odpowiedzi na zgłoszenie (Art. 6 ust. 1 lit. f RODO).
+              </span>
+            </label>
+
             <button
               type="submit"
               disabled={contactSubmitting}

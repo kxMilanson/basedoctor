@@ -670,4 +670,124 @@ export const dataStore = {
       recentScans,
     };
   },
+
+  async exportUserData(userId: string) {
+    const hasDb = await checkDbConnection();
+    if (hasDb) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      if (!user) return null;
+
+      const connections = await prisma.shopConnection.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          defaultInventoryId: true,
+          lastConnectedAt: true,
+          createdAt: true,
+        },
+      });
+
+      const scans = await prisma.diagnosticScan.findMany({
+        where: { userId },
+        include: { issues: true },
+        orderBy: { startedAt: "desc" },
+      });
+
+      return {
+        exportedAt: new Date().toISOString(),
+        legalBasis: "RODO Art. 20 (Prawo do przenoszenia danych)",
+        user,
+        connections,
+        scans,
+      };
+    }
+
+    await memoryStore.init();
+    const user = memoryStore.users.get(userId);
+    if (!user) return null;
+
+    const connections = Array.from(memoryStore.connections.values())
+      .filter((c) => c.userId === userId)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        defaultInventoryId: c.defaultInventoryId,
+        lastConnectedAt: c.lastConnectedAt,
+        createdAt: c.createdAt,
+      }));
+
+    const scans = Array.from(memoryStore.scans.values())
+      .filter((s) => s.userId === userId)
+      .map((s) => ({
+        ...s,
+        issues: memoryStore.issues.get(s.id) || [],
+      }));
+
+    return {
+      exportedAt: new Date().toISOString(),
+      legalBasis: "RODO Art. 20 (Prawo do przenoszenia danych)",
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+      connections,
+      scans,
+    };
+  },
+
+  async deleteUserAccount(userId: string) {
+    const hasDb = await checkDbConnection();
+    if (hasDb) {
+      const userScans = await prisma.diagnosticScan.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      const scanIds = userScans.map((s) => s.id);
+      if (scanIds.length > 0) {
+        await prisma.diagnosticIssue.deleteMany({
+          where: { scanId: { in: scanIds } },
+        });
+      }
+      await prisma.diagnosticScan.deleteMany({ where: { userId } });
+      await prisma.shopConnection.deleteMany({ where: { userId } });
+      await prisma.user.delete({ where: { id: userId } });
+      return true;
+    }
+
+    await memoryStore.init();
+    const user = memoryStore.users.get(userId);
+    for (const [scanId, scan] of Array.from(memoryStore.scans.entries())) {
+      if (scan.userId === userId) {
+        memoryStore.issues.delete(scanId);
+        memoryStore.scans.delete(scanId);
+      }
+    }
+    for (const [connId, conn] of Array.from(memoryStore.connections.entries())) {
+      if (conn.userId === userId) {
+        memoryStore.connections.delete(connId);
+      }
+    }
+    if (user) {
+      memoryStore.users.delete(user.id);
+      memoryStore.users.delete(user.email);
+    }
+    return true;
+  },
 };

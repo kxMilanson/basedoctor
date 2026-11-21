@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,10 +128,35 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <label className="flex items-start gap-2.5 text-xs text-zinc-400 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                required
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 rounded border-white/20 bg-white/5 text-[#2DD4BF] focus:ring-[#2DD4BF]"
+              />
+              <span className="leading-relaxed">
+                Akceptuję{" "}
+                <Link href="/regulamin" target="_blank" className="text-[#2DD4BF] hover:underline">
+                  Regulamin B2B
+                </Link>
+                ,{" "}
+                <Link href="/polityka-prywatnosci" target="_blank" className="text-[#2DD4BF] hover:underline">
+                  Politykę Prywatności
+                </Link>{" "}
+                oraz{" "}
+                <Link href="/dpa" target="_blank" className="text-[#2DD4BF] hover:underline">
+                  Umowę Powierzenia Danych (DPA)
+                </Link>
+                . Oświadczam, że zakładam konto jako przedsiębiorca (B2B).
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={loading}
-              className="btn-studio-brand w-full py-3.5 text-sm cursor-pointer"
+              disabled={loading || !acceptedTerms}
+              className="btn-studio-brand w-full py-3.5 text-sm cursor-pointer disabled:opacity-50"
             >
               <span>{loading ? "Tworzenie konta..." : "Utwórz darmowe konto"}</span>
               <ArrowRight className="w-4 h-4" />
