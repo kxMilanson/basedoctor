@@ -17,6 +17,7 @@ import {
   Package,
   Play,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -27,17 +28,23 @@ export default function DashboardPage() {
   const [scanning, setScanning] = useState(false);
   const [activeScanMsg, setActiveScanMsg] = useState<string | null>(null);
 
+  const fetchData = async () => {
+    try {
+      const [connRes, scanRes] = await Promise.all([
+        fetch("/api/connections").then((res) => (res.ok ? res.json() : { connections: [] })),
+        fetch("/api/scans").then((res) => (res.ok ? res.json() : { scans: [] })),
+      ]);
+      setConnections(connRes.connections || []);
+      setScans(scanRes.scans || []);
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    Promise.all([
-      fetch("/api/connections").then((res) => (res.ok ? res.json() : { connections: [] })),
-      fetch("/api/scans").then((res) => (res.ok ? res.json() : { scans: [] })),
-    ])
-      .then(([connData, scanData]) => {
-        setConnections(connData.connections || []);
-        setScans(scanData.scans || []);
-      })
-      .catch((err) => console.error("Dashboard fetch error:", err))
-      .finally(() => setLoading(false));
+    fetchData();
   }, []);
 
   const latestScan = scans[0];
@@ -68,6 +75,39 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLoadDemo = async () => {
+    setScanning(true);
+    setActiveScanMsg("Tworzenie demonstracyjnego połączenia...");
+    try {
+      const res = await fetch("/api/connections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Sklep Demonstracyjny (Dane Syntetyczne)",
+          token: "demo_bl_token_8899aabbcc",
+          testBeforeSave: false,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Błąd tworzenia demo.");
+      }
+      // Run scan on demo
+      const scanRes = await fetch(`/api/connections/${data.connection.id}/scan`, {
+        method: "POST",
+      });
+      const scanData = await scanRes.json();
+      if (!scanRes.ok) {
+        throw new Error(scanData.error || "Błąd skanowania demo.");
+      }
+      router.push(`/scans/${scanData.report.id}`);
+    } catch (err: any) {
+      alert(err.message);
+      setScanning(false);
+      setActiveScanMsg(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center text-slate-500">
@@ -75,6 +115,10 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  const isDemoActive =
+    (latestScan && (latestScan.shopConnection?.name?.toLowerCase().includes("demo") || latestScan.shopConnection?.name?.toLowerCase().includes("syntetyczn") || latestScan.id?.includes("demo"))) ||
+    (connections.length > 0 && connections.some((c) => c.name?.toLowerCase().includes("demo") || c.maskedToken?.includes("demo")));
 
   const score = latestScan?.healthScore ?? 100;
   const scoreColor =
@@ -91,7 +135,7 @@ export default function DashboardPage() {
             Pulpit Diagnostyczny Sklepu
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Status integralności bazy Base.com (Tylko do odczytu)
+            Status integralności bazy Base.com (Tylko do odczytu • Szyfrowanie AES-256-GCM)
           </p>
         </div>
 
@@ -113,6 +157,58 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Demo Notice Banner (if applicable) */}
+      {isDemoActive && (
+        <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-5 h-5 text-purple-600 shrink-0" />
+            <div>
+              <strong className="font-semibold">Tryb Demonstracyjny (Dane Syntetyczne):</strong>{" "}
+              Przeglądasz wyniki audytu wygenerowane na podstawie syntetycznego zestawu testowego.
+            </div>
+          </div>
+          <Link
+            href="/connections"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shrink-0 transition"
+          >
+            Podłącz prawdziwy sklep <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
+      {/* Empty State Banner (if no connections) */}
+      {connections.length === 0 && (
+        <div className="p-8 rounded-3xl bg-blue-50/50 border border-blue-200 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 mx-auto flex items-center justify-center">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div className="max-w-xl mx-auto space-y-1">
+            <h2 className="text-lg font-bold text-slate-900">
+              Witaj w BaseDoctor! Rozpocznij diagnostykę swojego sklepu
+            </h2>
+            <p className="text-xs text-slate-600">
+              Podłącz swój token API Base.com w trybie tylko do odczytu, aby wykryć zduplikowane SKU, ujemne stany i zablokowane zamówienia, lub wypróbuj aplikację na danych demonstracyjnych.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href="/connections"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center gap-2"
+            >
+              <Key className="w-4 h-4" /> Podłącz sklep Base.com
+            </Link>
+            <button
+              onClick={handleLoadDemo}
+              disabled={scanning}
+              className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-purple-600" />
+              Wypróbuj w trybie demonstracyjnym
+            </button>
+          </div>
+        </div>
+      )}
 
       {activeScanMsg && (
         <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-sm flex items-center gap-3 animate-pulse">
@@ -301,8 +397,15 @@ export default function DashboardPage() {
                     {scan.healthScore}%
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900">
-                      {scan.shopConnection?.name || "Sklep Base.com"}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">
+                        {scan.shopConnection?.name || "Sklep Base.com"}
+                      </span>
+                      {(scan.id?.includes("demo") || scan.shopConnection?.name?.toLowerCase().includes("demo")) && (
+                        <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded">
+                          DEMO
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-400">
                       {new Date(scan.completedAt || scan.startedAt).toLocaleString("pl-PL")} • {scan.issuesCount} wykrytych spraw

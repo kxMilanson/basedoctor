@@ -195,4 +195,99 @@ describe("BaseDoctor Integration & Security Tests", () => {
       expect(isValidEan("")).toBe(false); // empty
     });
   });
+
+  describe("API Error & Invalid Credential Handling", () => {
+    it("poprawnie wyłapuje i rzuca błąd przy nieprawidłowym lub wygasłym tokenie API (ERROR_AUTH)", async () => {
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: "ERROR",
+            error_code: "ERROR_AUTH",
+            error_message: "Podany token API jest nieprawidłowy lub został unieważniony.",
+          }),
+        };
+      });
+
+      const client = new BaseComClient({
+        token: "invalid_expired_token",
+        fetchFn: mockFetch as unknown as typeof fetch,
+      });
+
+      await expect(client.testConnection()).rejects.toThrow(
+        "Base.com API Error [ERROR_AUTH]: Podany token API jest nieprawidłowy lub został unieważniony."
+      );
+    });
+  });
+
+  describe("Commercial Value & Diagnostic Issue Enrichment", () => {
+    it("każda zdiagnozowana usterka posiada zdefiniowany wpływ biznesowy (businessImpact) i rozwiązanie (suggestedFix)", () => {
+      const productItem: BaseLinkerProductListItem = {
+        id: 999,
+        sku: "",
+        ean: "invalid-ean",
+        name: "Produkt z Usterkami",
+        quantity: -5,
+        price_brutto: 0,
+      };
+
+      const productData: Record<string, BaseLinkerProductData> = {
+        "999": {
+          is_bundle: false,
+          ean: "invalid-ean",
+          sku: "",
+          tax_rate: -1,
+          weight: 0,
+          height: 0,
+          width: 0,
+          length: 0,
+          star: 0,
+          category_id: 1,
+          producer_id: 1,
+          prices: {},
+          stock: { wh_1: -5 },
+          text_fields: { name: "Produkt z Usterkami" },
+          images: {},
+        },
+      };
+
+      const invIssues = diagnoseInventory([productItem], productData);
+      expect(invIssues.length).toBeGreaterThan(0);
+
+      for (const issue of invIssues) {
+        expect(issue.businessImpact).toBeDefined();
+        expect(issue.businessImpact.length).toBeGreaterThan(15);
+        expect(issue.suggestedFix).toBeDefined();
+        expect(issue.suggestedFix.length).toBeGreaterThan(15);
+        expect(typeof issue.canAutoFix).toBe("boolean");
+      }
+    });
+  });
+
+  describe("Connection Deletion Security", () => {
+    it("pozwala właścicielowi usunąć połączenie i blokuje usunięcie przez innego użytkownika", async () => {
+      const ownerId = "usr_owner_11";
+      const strangerId = "usr_stranger_22";
+
+      const conn = await dataStore.createConnection(ownerId, "Sklep do usunięcia", "token_delete_test");
+      expect(conn.id).toBeDefined();
+
+      // Stranger tries to delete owner's connection
+      const strangerDelete = await dataStore.deleteConnection(conn.id, strangerId);
+      expect(strangerDelete.count).toBe(0);
+
+      // Verify connection still exists
+      const stillThere = await dataStore.getConnectionById(conn.id, ownerId);
+      expect(stillThere).not.toBeNull();
+
+      // Owner deletes their own connection
+      const ownerDelete = await dataStore.deleteConnection(conn.id, ownerId);
+      expect(ownerDelete.count).toBe(1);
+
+      // Verify connection is gone
+      const gone = await dataStore.getConnectionById(conn.id, ownerId);
+      expect(gone).toBeNull();
+    });
+  });
 });

@@ -119,9 +119,15 @@ export async function generateScanReportPdf(
             doc.text("");
           }
 
-          doc.fontSize(9).fillColor("#334155").text(`Opis: ${issue.description}`);
-          doc.fontSize(9).fillColor("#1e40af").text(`Zalecana naprawa: ${issue.suggestedFix}`);
-          doc.moveDown(0.5);
+          doc.fontSize(8.5).fillColor("#334155").text(`Opis: ${issue.description}`);
+          if (issue.businessImpact) {
+            doc.fontSize(8).fillColor("#9a3412").text(`Wpływ biznesowy: ${issue.businessImpact}`);
+          }
+          const fixLine = `Zalecana naprawa: ${issue.suggestedFix}${
+            issue.estimatedFixTime ? ` [Szacowany czas: ${issue.estimatedFixTime}]` : ""
+          }`;
+          doc.fontSize(8.5).fillColor("#1e40af").text(fixLine);
+          doc.moveDown(0.6);
         });
 
         if (report.issues.length > 30) {

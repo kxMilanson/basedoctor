@@ -30,6 +30,12 @@ export function diagnoseInventory(
         details: { productId: item.id, quantity, sku },
         suggestedFix:
           "Zbadaj przyczynę ujemnego stanu magazynowego (zdublowane zamówienia, błędny zwrot) i wykonaj dokument korekty magazynowej (PW / RW).",
+        businessImpact:
+          "Ryzyko oversellingu — sprzedaży towarów, których nie ma na stanie. Prowadzi do opóźnień, reklamacji i utraty punktów jakości w marketplace.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga inwentaryzacji fizycznej i wystawienia dokumentu bilansującego (PW/RW).",
+        estimatedFixTime: "~5-10 min na weryfikację fizyczną",
       });
     }
 
@@ -54,6 +60,12 @@ export function diagnoseInventory(
             details: { productId: item.id, warehouseId: whId, stock: whQty, sku },
             suggestedFix:
               `Skoryguj stan magazynowy dla magazynu "${whId}" w Base.com.`,
+            businessImpact:
+              "Błędy przy kompletacji zamówień kierowanych do tego konkretnego magazynu i rozbieżności bilansowe.",
+            canAutoFix: false,
+            autoFixNote:
+              "Wymaga edycji stanu magazynu składowego w panelu BaseLinkera.",
+            estimatedFixTime: "~3 min na magazyn",
           });
         }
       }
@@ -82,11 +94,17 @@ export function diagnoseInventory(
           },
           suggestedFix:
             "Wykonaj ponowną synchronizację stanów magazynowych w Base.com lub sprawdź reguły domyślnego magazynu.",
+          businessImpact:
+            "Kanały sprzedaży mogą pobierać błędną sumaryczną dostępność towaru, zaniżając lub zawyżając potencjał sprzedażowy.",
+          canAutoFix: false,
+          autoFixNote:
+            "Wymaga weryfikacji powiązań magazynów składowych w module 'Magazyn -> Ustawienia'.",
+          estimatedFixTime: "~2-5 min",
         });
       }
     }
 
-    // 3. Zero Stock Notice for Active Catalog Items
+    // 4. Zero Stock Notice for Active Catalog Items
     if (quantity === 0) {
       issues.push({
         category: "INVENTORY",
@@ -99,6 +117,11 @@ export function diagnoseInventory(
         details: { productId: item.id, sku },
         suggestedFix:
           "Upewnij się, że oferty w marketplace (Allegro, eBay) zostały automatycznie wygaszone lub uzupełnij dostawę towaru.",
+        businessImpact:
+          "Utrata potencjalnych przychodów ze sprzedaży; ryzyko zakupu z zerowego stanu, jeśli automatyczne zamykanie aukcji zawiedzie.",
+        canAutoFix: false,
+        autoFixNote:
+          "Możliwe zabezpieczenie przez regułę automatyczną w BaseLinkerze (zamykanie aukcji przy stanie <= 0).",
       });
     }
   }

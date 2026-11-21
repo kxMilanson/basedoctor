@@ -95,6 +95,12 @@ export function diagnoseOrders(
         details: { orderId: order.order_id, days, statusName, orderTotal },
         suggestedFix:
           "Zweryfikuj stan zamówienia z magazynem lub skontaktuj się z klientem i zmień status na właściwy.",
+        businessImpact:
+          "Zablokowane środki, rosnące niezadowolenie klienta, ryzyko sporów i obniżenia wskaźników jakości obsługi.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga bezpośredniej interwencji obsługi klienta w celu weryfikacji przyczyny przestoju.",
+        estimatedFixTime: "~3-5 min na zamówienie",
       });
     } else if (!isFinished && ageSec > SEVEN_DAYS_SEC) {
       const days = Math.floor(ageSec / 86400);
@@ -109,6 +115,12 @@ export function diagnoseOrders(
         details: { orderId: order.order_id, days, statusName },
         suggestedFix:
           "Przyspiesz kompletację lub poinformuj klienta o opóźnieniu dostawy.",
+        businessImpact:
+          "Przekroczenie deklarowanego czasu wysyłki i ryzyko negatywnych ocen od kupującego.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga zbadania czy przyczyną jest brak asortymentu czy przeoczenie magazyniera.",
+        estimatedFixTime: "~2-4 min na zamówienie",
       });
     }
 
@@ -131,6 +143,12 @@ export function diagnoseOrders(
         details: { orderId: order.order_id, paymentDone, orderTotal },
         suggestedFix:
           "Wygeneruj etykietę kurierską w Base.com i przekaż paczkę do wysyłki.",
+        businessImpact:
+          "Płatność została zaksięgowana, a zamówienie nie zostało przekazane przewoźnikowi — grozi eskalacją dyskusji kupującego.",
+        canAutoFix: false,
+        autoFixNote:
+          "Możliwe częściowe przyspieszenie poprzez automatyczną akcję tworzenia paczki po odnotowaniu wpłaty.",
+        estimatedFixTime: "~2 min na wygenerowanie etykiety",
       });
     }
 
@@ -151,6 +169,12 @@ export function diagnoseOrders(
         },
         suggestedFix:
           "Wprowadź numer listu przewozowego, aby powiadomić klienta i uniknąć kar w Allegro / Amazon za brak trackingu.",
+        businessImpact:
+          "Spadek wskaźnika terminowego dodawania numerów przesyłek (np. w Allegro Jakość Sprzedaży lub Amazon VTR), co może skutkować utratą oznaczeń lub ostrzeżeniem konta.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga uzupełnienia numeru paczki wygenerowanej u zewnętrznego kuriera do karty zamówienia.",
+        estimatedFixTime: "~1-2 min na zamówienie",
       });
     }
 
@@ -172,6 +196,12 @@ export function diagnoseOrders(
         },
         suggestedFix:
           "Pilnie sprawdź wyciąg bankowy / bramkę płatności (PayU, Przelewy24, Stripe) i potwierdź zaksięgowanie wpłaty.",
+        businessImpact:
+          "Bezpośrednia strata finansowa — towar opuścił magazyn bez odnotowanej zapłaty i bez pobrania kwoty przez kuriera.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga weryfikacji wyciągu bankowego i kontaktu z klientem w celu uregulowania płatności.",
+        estimatedFixTime: "~5-15 min",
       });
     }
 
@@ -189,6 +219,12 @@ export function diagnoseOrders(
         details: { orderId: order.order_id, paymentDone, orderTotal, missingAmount },
         suggestedFix:
           "Wyślij do klienta prośbę o dopłatę różnicy lub skoryguj pozycje zamówienia przed wysyłką.",
+        businessImpact:
+          "Niezgodność księgowa i zaniżenie zysku z transakcji (np. klient nie opłacił wybranej droższej metody dostawy).",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga wysłania klientowi linku do dopłaty w bramce płatności.",
+        estimatedFixTime: "~2-3 min",
       });
     }
   }

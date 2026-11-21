@@ -27,6 +27,10 @@ export interface DiagnosticIssueItem {
   affectedIdentifier?: string;
   details?: Record<string, unknown>;
   suggestedFix: string;
+  businessImpact?: string;
+  canAutoFix?: boolean;
+  autoFixNote?: string;
+  estimatedFixTime?: string;
 }
 
 export interface ScanCategorySummary {

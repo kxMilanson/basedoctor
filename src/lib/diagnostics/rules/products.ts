@@ -45,6 +45,12 @@ export function diagnoseProducts(
         details: { productId: item.id, name: productName },
         suggestedFix:
           "Nadaj unikalny kod SKU w katalogu Base.com, aby umożliwić bezbłędną synchronizację z Allegro, Amazon i systemem ERP.",
+        businessImpact:
+          "Brak możliwości powiązania towaru z ofertami na marketplace oraz blokada automatycznej synchronizacji stanów magazynowych z systemem ERP.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga manualnego nadania unikalnego SKU w katalogu BaseLinkera lub importu pliku CSV z mapowaniem.",
+        estimatedFixTime: "~1-2 min na produkt",
       });
     } else {
       const list = skuOccurrences.get(sku.toUpperCase()) || [];
@@ -65,6 +71,12 @@ export function diagnoseProducts(
         details: { productId: item.id, sku },
         suggestedFix:
           "Wprowadź prawidłowy kod EAN-13. Większość platform (np. Allegro, Google Shopping) odrzuca lub obniża widoczność ofert bez EAN.",
+        businessImpact:
+          "Platformy handlowe (Allegro, Google Shopping, Amazon) odrzucają oferty bez EAN lub obniżają pozycję oferty w trafności wyszukiwania.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga uzupełnienia oficjalnego kodu z opakowania producenta lub bazy GS1.",
+        estimatedFixTime: "~1 min na produkt",
       });
     } else if (!isValidEan(ean)) {
       issues.push({
@@ -78,6 +90,12 @@ export function diagnoseProducts(
         details: { productId: item.id, ean, sku },
         suggestedFix:
           "Skoryguj kod kreskowy, usuwając litery, spacje lub niepoprawną liczbę cyfr.",
+        businessImpact:
+          "Błędy walidacji w feedach produktowych Google Merchant oraz błędy skanowania kodów na pakowalni magazynu.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga skorygowania ciągu znaków do standardu cyfrowego EAN (8, 12, 13 lub 14 cyfr).",
+        estimatedFixTime: "~1-2 min na produkt",
       });
     } else {
       const list = eanOccurrences.get(ean) || [];
@@ -99,6 +117,12 @@ export function diagnoseProducts(
         details: { productId: item.id, price, sku },
         suggestedFix:
           "Natychmiast zaktualizuj cenę sprzedaży produktu w katalogu Base.com lub zablokuj jego wystawianie na kanałach sprzedaży.",
+        businessImpact:
+          "Poważne ryzyko finansowe — zautomatyzowane boty kupujące mogą wykupić asortyment za 0 PLN przed reakcją personelu sklepu.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga manualnej korekty ceny w cenniku Base.com lub wstrzymania powiązanych aukcji.",
+        estimatedFixTime: "~1 min na produkt",
       });
     }
 
@@ -118,6 +142,12 @@ export function diagnoseProducts(
           details: { productId: item.id, weight, sku },
           suggestedFix:
             "Uzupełnij wagę brutto produktu w kilogramach w zakładce Parametry produktu.",
+          businessImpact:
+            "Przewoźnicy (InPost, DPD, DHL) naliczają kary i dopłaty gabarytowe przy weryfikacji paczek na sortowni, generując nieprzewidziane koszty na fakturach.",
+          canAutoFix: false,
+          autoFixNote:
+            "Wymaga wprowadzenia wagi w parametrach produktu lub masowego importu z pliku CSV.",
+          estimatedFixTime: "~1 min na produkt",
         });
       }
 
@@ -135,6 +165,12 @@ export function diagnoseProducts(
           details: { productId: item.id, sku },
           suggestedFix:
             "Wgraj minimum jedno zdjęcie produktu wysokiej jakości.",
+          businessImpact:
+            "Odrzucenie ofert w kanałach sprzedaży, brak miniatur na stanowiskach kompletacji zamówień i spadek konwersji.",
+          canAutoFix: false,
+          autoFixNote:
+            "Wymaga wgrania zdjęć do galerii produktu lub podpięcia linków URL.",
+          estimatedFixTime: "~2-3 min na produkt",
         });
       }
 
@@ -151,6 +187,12 @@ export function diagnoseProducts(
           details: { productId: item.id, taxRate: pData.tax_rate, sku },
           suggestedFix:
             "Przypisz właściwą stawkę podatku VAT (np. 23%, 8%, 5% lub 0%).",
+          businessImpact:
+            "Niezgodność na fakturach i paragonach fiskalnych generująca ryzyko sankcji karno-skarbowych i konieczność korekt w JPK_V7.",
+          canAutoFix: false,
+          autoFixNote:
+            "Wymaga przypisania właściwej stawki podatku w parametrach produktu.",
+          estimatedFixTime: "~1 min na produkt",
         });
       }
     }
@@ -169,6 +211,12 @@ export function diagnoseProducts(
         details: { sku, occurrences: items },
         suggestedFix:
           "Zmień kody SKU, aby każdy produkt i wariant posiadał ściśle unikalny identyfikator towaru.",
+        businessImpact:
+          "Magazynierzy pakują niewłaściwe towary, a integracje ERP/Allegro nadpisują stany losowych produktów o tym samym SKU.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga rozróżnienia kodów SKU dla poszczególnych wariantów i towarów.",
+        estimatedFixTime: "~2-3 min na parę duplikatów",
       });
     }
   }
@@ -186,6 +234,12 @@ export function diagnoseProducts(
         details: { ean, occurrences: items },
         suggestedFix:
           "Upewnij się, że nie jest to pomyłka przy wprowadzaniu kodów producenta. Zduplikowany EAN myli skanery na pakowalni.",
+        businessImpact:
+          "Skanery kodów kreskowych na stanowisku pakowania identyfikują zły produkt, co prowadzi do pomyłek w wysyłce.",
+        canAutoFix: false,
+        autoFixNote:
+          "Wymaga weryfikacji z kodami kreskowymi na opakowaniach fizycznych towarów.",
+        estimatedFixTime: "~2 min na produkt",
       });
     }
   }

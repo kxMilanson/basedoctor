@@ -1,89 +1,66 @@
 # BaseDoctor — Project State & Architectural Summary
 
 **Last Updated:** 2026-11-21  
-**Project:** BaseDoctor (Production-oriented SaaS MVP)  
-**Status:** MVP Fully Implemented, Tested & Verified (All 15 Vitest tests passing, Next.js 14 production build passing)
+**Project:** BaseDoctor (Commercial SaaS Diagnostic Platform for E-commerce & Base.com)  
+**Status:** Beta Release Complete — Verified & Tested (18/18 Vitest tests passing, Next.js 14 production build verified)
 
 ---
 
 ## 1. Executive Overview
-BaseDoctor is a commercial diagnostic tool for e-commerce stores integrated with Base.com (BaseLinker). It connects via the official Base.com connector API (`connector.php`) using a strict **Read-Only** model to identify product/SKU catalog discrepancies, multi-warehouse inventory desynchronization, and order fulfillment/payment risks without making destructive changes.
+BaseDoctor is a commercial SaaS diagnostic platform for online stores and agencies operating on Base.com (BaseLinker). It connects via the official Base.com connector API (`connector.php`) using a strict **Read-Only** model to identify product/SKU catalog discrepancies, multi-warehouse inventory desynchronization, and order fulfillment/payment risks without making destructive changes.
+
+The platform provides actionable business intelligence: each detected defect is presented with its severity, potential business consequences, recommended remediation steps, auto-fix feasibility, and estimated manual repair time.
 
 ---
 
-## 2. Implemented Features & Architecture
+## 2. Customer Journey & Core Modules
 
-### 2.1 Authentication & Authorization
-- **Location:** `src/lib/auth.ts`, `src/middleware.ts`, `src/app/api/auth/*`
-- **Password Security:** Salted hashing with `bcryptjs` (cost 10).
-- **Session Tokens:** Stateless HTTP-only JWTs using `jose` (`HS256`, 7-day expiration).
-- **Route Protection:** Next.js Edge Middleware (`src/middleware.ts`) guarding `/dashboard`, `/connections`, `/scans`, and `/admin`.
-- **RBAC:** Roles `USER` and `ADMIN` with administrative privilege checks on `/api/admin/overview` and `/admin`.
-- **Tenant Isolation:** Enforced at repository level (`dataStore` and API routes scoped to authenticated `userId`).
-
-### 2.2 Credentials Encryption & Server-side Security
-- **Location:** `src/lib/crypto.ts`
-- **Algorithm:** Authenticated symmetric encryption `AES-256-GCM` using 256-bit server key (`ENCRYPTION_KEY`).
-- **Tamper Protection:** Unique 12-byte random IV (`crypto.randomBytes(12)`) and 16-byte authentication tag per stored token.
-- **Exposure Prevention:** API tokens are decrypted strictly server-side immediately before dispatching requests. The browser and UI only receive masked identifiers (e.g., `1234••••••••abcd`).
-
-### 2.3 Official Base.com API Client (Read-Only)
-- **Location:** `src/lib/base-com/client.ts`
-- **Endpoint:** `https://api.baselinker.com/connector.php`
-- **Protocol:** `POST` with `X-BLToken` header and `application/x-www-form-urlencoded` body (`method` + JSON-encoded `parameters`).
-- **Read-Only Whitelist:** Enforces `ALLOWED_READ_ONLY_METHODS`. Any attempt to call mutating methods (`set*`, `add*`, `delete*`) immediately aborts with `ReadOnlyViolationError`.
-- **Rate-Limiting:** Sliding-window rate limiter (95 req/min) preventing Base.com 100 req/min threshold violations.
-- **Resilience:** Automatic 3-stage exponential backoff retry on HTTP 429 (`ERROR_RATE_LIMIT`).
-- **Pagination & Batching:**
-  - `getInventoryProductsListPaginated(inventoryId, maxPages)`: Retrieves multi-page catalogs.
-  - `getInventoryProductsDataBatched(inventoryId, productIds, 100)`: Chunks product IDs into max 100 per call (Base.com API constraint).
-  - `getOrdersPaginated(params)`: Retrieves orders across batches with timestamp/order ID bounds.
-
-### 2.4 Deterministic Diagnostic Engine
-- **Location:** `src/lib/diagnostics/engine.ts`, `src/lib/diagnostics/rules/*`
-- **Product & SKU Rules (`products.ts`):**
-  - `PROD_MISSING_SKU` (CRITICAL): Missing SKU preventing ERP/marketplace syncing.
-  - `PROD_DUPLICATE_SKU` (CRITICAL): Same SKU assigned to multiple products/variants.
-  - `PROD_ZERO_PRICE` (CRITICAL): Gross price &le; 0 PLN (accidental free giveaways).
-  - `PROD_MISSING_EAN` / `PROD_INVALID_EAN` (WARNING): Missing or malformed EAN-8/12/13/14 barcodes.
-  - `PROD_DUPLICATE_EAN` (WARNING): Identical EAN assigned to distinct products.
-  - `PROD_MISSING_WEIGHT` (WARNING): Product weight is 0.00 kg (incurs courier penalty surcharges).
-  - `PROD_MISSING_IMAGES` (WARNING): Zero images attached in Base.com.
-  - `PROD_INVALID_TAX` (WARNING): Negative or unassigned VAT rate.
-- **Inventory Rules (`inventory.ts`):**
-  - `INV_NEGATIVE_STOCK` (CRITICAL): Overall inventory &lt; 0 (overselling).
-  - `INV_WAREHOUSE_NEGATIVE_STOCK` (CRITICAL): Negative stock in specific warehouse.
-  - `INV_WAREHOUSE_DESYNC` (WARNING): Checked *only* when authoritative sources are present (&ge; 2 warehouses defined in product stock breakdown).
-  - `INV_ZERO_STOCK` (INFO): Out-of-stock warning for active catalog items.
-- **Order Rules (`orders.ts`):**
-  - `ORD_STUCK_PROCESSING_CRITICAL` (CRITICAL): Orders in progress &gt; 14 days.
-  - `ORD_STUCK_PROCESSING_WARNING` (WARNING): Orders in progress &gt; 7 days.
-  - `ORD_MISSING_TRACKING` (CRITICAL): Shipped orders without `delivery_package_nr`.
-  - `ORD_UNPAID_SHIPPED` (CRITICAL): Order marked shipped with 0 PLN received and not Cash on Delivery.
-  - `ORD_PAID_UNSHIPPED` (WARNING): 100% paid orders unfulfilled &gt; 72h.
-  - `ORD_PARTIAL_PAYMENT` (WARNING): Underpaid transfer orders.
-- **Health Score Algorithm:** Weighted average: Catalog (35%), Inventory (30%), Orders (35%).
-
-### 2.5 PDF Export Engine
-- **Location:** `src/lib/reports/pdf.ts`, `src/app/api/scans/[id]/pdf/route.ts`
-- **Format:** Formatted A4 PDF generated server-side using `PDFKit`.
-- **Contents:** Executive Health Score, metadata, category summary cards, transparent data source label (`BASE_COM_LIVE` vs `DEMO_FIXTURES`), and itemized table of findings with actionable remediation recommendations.
-
-### 2.6 Persistence & PostgreSQL Database
-- **Location:** `prisma/schema.prisma`, `prisma/migrations/20261121000000_init/migration.sql`, `src/lib/services/data-store.ts`
-- **Database Support:** Full PostgreSQL schema with foreign keys, indexes, cascades, and enum definitions.
-- **Self-Healing Fallback:** `dataStore` checks PostgreSQL connectivity via Prisma. If a PostgreSQL instance is not yet running (e.g. initial offline setup), it automatically switches to an in-memory repository pre-seeded with test accounts and demo data.
+### 2.1 Complete Customer Flow
+1. **User Registration & Login:** Email/password registration with salted bcrypt hash (cost 10), stateless HTTP-only JWT session cookies (`jose`, HS256), and Next.js Edge Middleware route guarding.
+2. **Secure Connection:** Customer connects their Base.com token via `/connections`. The token is immediately encrypted with authenticated symmetric AES-256-GCM.
+3. **Step-by-Step Onboarding:** Visual guidance inside the connection view showing how to retrieve the API token from BaseLinker (`Konto -> Moje konto -> API`) with read-only permissions.
+4. **Demonstration Mode:** 1-click "Wypróbuj w trybie demonstracyjnym" creates an isolated demo store with realistic synthetic fixtures, clearly tagged `[TRYB DEMO - DANE SYNTETYCZNE]`.
+5. **Deterministic Diagnostics:** Evaluates 15 deterministic diagnostic rules across Products, Inventory, and Orders with rate-limit protection (95 req/min) and paginated chunking (100 IDs/call).
+6. **Commercial Value & Health Score:** Clear score (0–100%) and issue cards enriched with business impact (`businessImpact`), suggested fix (`suggestedFix`), auto-repair feasibility (`canAutoFix`), and repair duration estimates (`estimatedFixTime`).
+7. **Official PDF Export:** Professional server-side generated A4 PDF report with corporate branding, category summaries, and full issue register.
+8. **Diagnostic History & Isolation:** Scans and connections are strictly scoped to the authenticated tenant (anti-IDOR protection).
+9. **Sales Readiness & Inbound Leads:** Polish landing page with persona targeting (Store Owners, BaseLinker Agencies, Logistics Managers), interactive issue preview, and contact lead capture (`/api/contact`).
 
 ---
 
-## 3. Test Coverage & Verification
+## 3. Diagnostic Rules & Commercial Enrichment
 
-Automated test suite runs with **Vitest**:
+| Rule Code | Severity | Description (PL) | Business Impact | Fix Time Estimate |
+|---|---|---|---|---|
+| `PROD_MISSING_SKU` | CRITICAL | Brak kodu SKU w produkcie | Blokuje synchronizację z Allegro, Amazon, ERP i wstrzymuje automatyczne wznawianie aukcji. | ~5 minut |
+| `PROD_DUPLICATE_SKU` | CRITICAL | Zdublowany identyfikator SKU | Ryzyko wysyłki złego wariantu, błędne stany w marketplace, chaos w inwentaryzacji. | ~10 minut |
+| `PROD_ZERO_PRICE` | CRITICAL | Cena brutto &le; 0.00 PLN | Ryzyko sprzedaży towaru za darmo przy błędnym wznowieniu aukcji. | ~3 minuty |
+| `PROD_MISSING_EAN` | WARNING | Brak kodu kreskowego EAN | Obniżenie trafności na marketplace, brak możliwości wystawiania na Allegro/Amazon. | ~5 minut |
+| `PROD_INVALID_EAN` | WARNING | Niepoprawny format kodu EAN | Odrzucenie oferty przez walidatory marketplace, błędy skanerów kodów kreskowych. | ~5 minut |
+| `PROD_DUPLICATE_EAN` | WARNING | Zdublowany kod kreskowy EAN | Błędy automatycznego łączenia ofert z katalogiem produktów Allegro/Google Shopping. | ~5 minut |
+| `PROD_MISSING_WEIGHT` | WARNING | Brak wagi produktu (0.00 kg) | Błędy doboru gabarytu paczki w InPost/DPD/DHL i dotkliwe dopłaty weryfikacyjne na sortowni. | ~5 minut |
+| `PROD_MISSING_IMAGES` | WARNING | Brak zdjęć w galerii | Drastyczny spadek konwersji i blokada wystawiania na platformach marketplace. | ~15 minut |
+| `PROD_INVALID_TAX` | WARNING | Nieprawidłowa stawka VAT | Błędy fakturowania, rozbieżności w JPK_V7 i ryzyko sankcji karnoskarbowych. | ~5 minut |
+| `INV_NEGATIVE_STOCK` | CRITICAL | Ujemny stan magazynowy | Overselling (sprzedaż towaru widmo), opóźnienia, negatywne opinie i anulacje zamówień. | ~15 minut |
+| `INV_WAREHOUSE_NEGATIVE_STOCK` | CRITICAL | Ujemny stan w magazynie składowym | Rozbieżności w inwentaryzacji fizycznej poszczególnych lokalizacji magazynowych. | ~10 minut |
+| `INV_WAREHOUSE_DESYNC` | WARNING | Niespójność sumy stanów z magazynów | Błędy wyliczania stanów dyspozycyjnych pomiędzy magazynami a kanałami sprzedaży. | ~15 minut |
+| `INV_ZERO_STOCK` | INFO | Zerowy stan magazynowy | Ryzyko utraty pozycji w wynikach wyszukiwania po wyczerpaniu zapasów. | ~5 minut |
+| `ORD_STUCK_PROCESSING_CRITICAL` | CRITICAL | Zamówienie zablokowane &gt; 14 dni | Ryzyko rezygnacji klienta, obciążenia zwrotem i spory w Centrum Rozstrzygania. | ~15 minut |
+| `ORD_STUCK_PROCESSING_WARNING` | WARNING | Zamówienie w realizacji &gt; 7 dni | Spadek zaufania kupującego i potencjalne opóźnienia łańcucha dostaw. | ~10 minut |
+| `ORD_MISSING_TRACKING` | CRITICAL | Wysłane zamówienie bez listu przewozowego | Utrata statusu Super Sprzedawcy i brak automatycznych powiadomień dla klienta. | ~5 minut |
+| `ORD_UNPAID_SHIPPED` | CRITICAL | Wysłane zamówienie bez zapłaty (nie pobranie) | Bezpośrednia strata finansowa (towar wydany bez odnotowania środków na koncie). | ~20 minut |
+| `ORD_PAID_UNSHIPPED` | WARNING | Opłacone zamówienie nienadane &gt; 72h | Niezadowolenie klienta i przekroczenie deklarowanego czasu wysyłki na marketplace. | ~10 minut |
+| `ORD_PARTIAL_PAYMENT` | WARNING | Częściowa wpłata na zamówieniu | Ryzyko wydania towaru o pełnej wartości przy niepełnej płatności przelewowej. | ~10 minut |
+
+---
+
+## 4. Verification & Automated Test Suite
+
 - `src/lib/base-com/client.test.ts` (3 tests) — Read-only whitelist enforcement, parameter formatting, error handling.
 - `src/lib/crypto.test.ts` (3 tests) — AES-256-GCM encryption, decryption, authentication tag anti-tampering verification, token masking.
 - `src/lib/diagnostics/engine.test.ts` (2 tests) — Comprehensive diagnostics verification with fixtures, 100% clean store verification.
 - `src/lib/reports/pdf.test.ts` (1 test) — Binary PDF stream generation with `%PDF-` header.
-- `src/test/integration.test.ts` (6 tests) — Multi-page product retrieval pagination, 100-ID chunking, client rate limiting, tenant data isolation (anti-IDOR), authoritative warehouse discrepancy checks, and EAN barcode validation.
+- `src/test/integration.test.ts` (9 tests) — Multi-page product retrieval pagination, 100-ID chunking, client rate limiting, tenant data isolation (anti-IDOR), authoritative warehouse discrepancy checks, EAN barcode validation, API error & invalid credential handling (ERROR_AUTH), commercial issue enrichment (businessImpact & suggestedFix), and connection deletion security.
 
-**Total:** 5 test suites, 15 tests, 100% passing.
-**Production Build:** Next.js 14.2 compiled with 17 static/dynamic routes and active Edge Middleware (`Exit code: 0`).
+**Total:** 5 test suites, 18 tests, 100% passing.
+**Production Build:** Next.js 14.2 compiled with 18 static/dynamic routes and active Edge Middleware (`Exit code: 0`).
