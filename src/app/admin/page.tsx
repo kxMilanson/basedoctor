@@ -5,17 +5,11 @@ import Link from "next/link";
 import { AppSidebar } from "@/components/AppSidebar";
 import {
   Users,
-  ShieldCheck,
   Activity,
   Layers,
   Key,
-  Calendar,
-  Lock,
   ArrowRight,
   AlertCircle,
-  Database,
-  CheckCircle2,
-  ExternalLink,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -44,156 +38,117 @@ export default function AdminPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8F7F4] text-[#111315]">
-      {/* Persistent Left Sidebar */}
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#FAF8F5] text-[#18181B]">
       <AppSidebar
         connectionsCount={stats?.totalConnections ?? 0}
-        activeStoreName="Panel Zarządczy Root"
+        activeStoreName="Panel administratora"
         isDemo={false}
       />
 
-      {/* Main Workspace */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Sticky Workspace Top Header */}
-        <header className="sticky top-0 z-30 h-14 px-4 sm:px-8 bg-[#F8F7F4]/90 backdrop-blur-md border-b border-[#E5E3DC] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-medium text-[#5C6168]">System</span>
-            <span className="text-[#CFCBC2]">/</span>
-            <h1 className="text-xs sm:text-sm font-semibold text-[#111315] truncate">
-              Nadzór Najemców i Bezpieczeństwo
+        <header className="sticky top-0 z-30 h-16 px-4 sm:px-8 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E8E4DC] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-sm sm:text-base font-semibold text-[#18181B] truncate">
+              Panel administratora
             </h1>
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#EDF2FF] border border-[#C7D7FE] text-[#0052FF]">
-              ADMIN ROOT
-            </span>
+            <span className="pill-demo">Administrator</span>
           </div>
         </header>
 
-        {/* Workspace Body */}
-        <div className="p-4 sm:p-8 max-w-[1400px] w-full mx-auto space-y-6">
-          <div className="border-b border-[#E5E3DC] pb-4">
-            <span className="pci-eyebrow">Administracja Centralna</span>
-            <h2 className="text-base font-semibold text-[#111315] mt-0.5">
-              Pulpit Administracyjny Platformy
-            </h2>
-            <p className="text-xs text-[#5C6168] mt-0.5">
-              Rejestr kont najemców, wolumen zaszyfrowanych magazynów kluczy oraz globalna telemetria audytów.
-            </p>
-          </div>
-
+        <div className="p-4 sm:p-8 max-w-6xl w-full mx-auto space-y-6">
           {loading ? (
-            <div className="pci-card p-12 text-center text-xs text-[#5C6168] font-mono animate-pulse">
-              Weryfikacja uprawnień i ładowanie panelu zarządczego...
+            <div className="studio-card p-12 text-center text-xs text-[#71717A] animate-pulse">
+              Sprawdzanie uprawnień i ładowanie danych...
             </div>
           ) : error ? (
-            <div className="pci-card p-10 max-w-md mx-auto text-center space-y-4">
-              <div className="w-10 h-10 rounded-md bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] mx-auto flex items-center justify-center">
+            <div className="studio-card p-10 max-w-md mx-auto text-center space-y-4">
+              <div className="w-11 h-11 rounded-2xl bg-[#FFF1F2] border border-[#FECDD3] text-[#BE123C] mx-auto flex items-center justify-center">
                 <AlertCircle className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold text-[#111315]">Odmowa Dostępu</h3>
-              <p className="text-xs text-[#5C6168]">{error}</p>
-              <div className="p-3 bg-[#FAF9F6] rounded-md border border-[#E5E3DC] text-xs font-mono text-left">
-                <div className="text-[10px] text-[#868C94] uppercase mb-1">Konto Administratora:</div>
-                <div>Login: admin@basedoctor.pl</div>
-                <div>Hasło: Admin123!</div>
-              </div>
-              <Link href="/login" className="btn-primary-cobalt inline-flex text-xs">
-                Przejdź do logowania
+              <h2 className="text-base font-bold text-[#18181B]">Brak dostępu</h2>
+              <p className="text-xs text-[#52525B]">{error}</p>
+              <Link href="/login" className="btn-studio-brand inline-flex text-xs">
+                Zaloguj się ponownie
               </Link>
             </div>
           ) : (
             <>
-              {/* 4 KPI Cards */}
+              {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="pci-card p-5 space-y-2">
-                  <div className="flex justify-between items-center text-[#5C6168]">
-                    <span className="pci-eyebrow">Konta Użytkowników</span>
-                    <Users className="w-4 h-4 text-[#5C6168]" />
+                <div className="studio-card p-5 space-y-2">
+                  <div className="flex justify-between items-center text-[#71717A]">
+                    <span className="text-xs font-medium">Użytkownicy</span>
+                    <Users className="w-4 h-4 text-[#0F766E]" />
                   </div>
-                  <div className="font-mono text-3xl font-bold tracking-tight text-[#111315] tabular-nums">
+                  <div className="text-3xl font-bold text-[#18181B] tabular-nums">
                     {stats?.totalUsers ?? 0}
                   </div>
-                  <p className="text-[11px] text-[#5C6168]">Zarejestrowane profile w bazie</p>
                 </div>
 
-                <div className="pci-card p-5 space-y-2">
-                  <div className="flex justify-between items-center text-[#5C6168]">
-                    <span className="pci-eyebrow">Magazyny Kluczy API</span>
-                    <Key className="w-4 h-4 text-[#059669]" />
+                <div className="studio-card p-5 space-y-2">
+                  <div className="flex justify-between items-center text-[#71717A]">
+                    <span className="text-xs font-medium">Połączone sklepy</span>
+                    <Key className="w-4 h-4 text-[#10B981]" />
                   </div>
-                  <div className="font-mono text-3xl font-bold tracking-tight text-[#111315] tabular-nums">
+                  <div className="text-3xl font-bold text-[#18181B] tabular-nums">
                     {stats?.totalConnections ?? 0}
                   </div>
-                  <p className="text-[11px] text-[#5C6168]">Zaszyfrowane tokeny AES-256</p>
                 </div>
 
-                <div className="pci-card p-5 space-y-2">
-                  <div className="flex justify-between items-center text-[#5C6168]">
-                    <span className="pci-eyebrow">Wykonane Audyty</span>
-                    <Activity className="w-4 h-4 text-[#0052FF]" />
+                <div className="studio-card p-5 space-y-2">
+                  <div className="flex justify-between items-center text-[#71717A]">
+                    <span className="text-xs font-medium">Wykonane raporty</span>
+                    <Activity className="w-4 h-4 text-[#0F766E]" />
                   </div>
-                  <div className="font-mono text-3xl font-bold tracking-tight text-[#111315] tabular-nums">
+                  <div className="text-3xl font-bold text-[#18181B] tabular-nums">
                     {stats?.totalScans ?? 0}
                   </div>
-                  <p className="text-[11px] text-[#5C6168]">Przeprowadzone skany diagnostyczne</p>
                 </div>
 
-                <div className="pci-card p-5 space-y-2">
-                  <div className="flex justify-between items-center text-[#5C6168]">
-                    <span className="pci-eyebrow text-[#B91C1C]">Wykryte Usterki</span>
-                    <Layers className="w-4 h-4 text-[#B91C1C]" />
+                <div className="studio-card p-5 space-y-2">
+                  <div className="flex justify-between items-center text-[#71717A]">
+                    <span className="text-xs font-medium">Wykryte sprawy</span>
+                    <Layers className="w-4 h-4 text-[#BE123C]" />
                   </div>
-                  <div className="font-mono text-3xl font-bold tracking-tight text-[#111315] tabular-nums">
+                  <div className="text-3xl font-bold text-[#18181B] tabular-nums">
                     {stats?.totalIssues ?? 0}
                   </div>
-                  <p className="text-[11px] text-[#5C6168]">Skatalogowane nieprawidłowości</p>
                 </div>
               </div>
 
-              {/* Users List Table */}
-              <div className="pci-card overflow-hidden">
-                <div className="p-5 border-b border-[#E5E3DC] flex items-center justify-between">
-                  <div>
-                    <span className="pci-eyebrow">Rejestr Najemców</span>
-                    <h3 className="text-sm font-semibold text-[#111315] mt-0.5">
-                      Zarejestrowani Użytkownicy ({users.length})
-                    </h3>
-                  </div>
-                  <span className="font-mono text-[11px] text-[#046C4E] font-semibold bg-[#ECFDF5] border border-[#A7F3D0] px-2 py-0.5 rounded">
-                    Tenant Isolation Active
-                  </span>
+              {/* Users List */}
+              <div className="studio-card overflow-hidden">
+                <div className="p-5 border-b border-[#F1EFEA] flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-[#18181B]">
+                    Zarejestrowani użytkownicy ({users.length})
+                  </h2>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-[#FAF9F6] border-b border-[#E5E3DC] text-[10px] font-mono uppercase tracking-wider text-[#5C6168]">
-                        <th className="py-2.5 px-4">Użytkownik / Email</th>
-                        <th className="py-2.5 px-4">Rola Uprawnień</th>
-                        <th className="py-2.5 px-4">Data Rejestracji</th>
-                        <th className="py-2.5 px-4 text-right">Sklepy API</th>
+                      <tr className="bg-[#FAF8F5] border-b border-[#E8E4DC] text-[11px] font-semibold text-[#71717A]">
+                        <th className="py-3 px-5">Użytkownik</th>
+                        <th className="py-3 px-5">Uprawnienia</th>
+                        <th className="py-3 px-5">Data dołączenia</th>
+                        <th className="py-3 px-5 text-right">Sklepy</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#EFECE6] text-xs">
+                    <tbody className="divide-y divide-[#F1EFEA] text-xs">
                       {users.map((u) => (
-                        <tr key={u.id} className="hover:bg-[#FAF9F6] transition">
-                          <td className="py-3 px-4 font-semibold text-[#111315]">
-                            <div>{u.name || "Użytkownik"}</div>
-                            <div className="text-[11px] font-mono text-[#5C6168]">{u.email}</div>
+                        <tr key={u.id} className="hover:bg-[#FAF8F5] transition">
+                          <td className="py-3.5 px-5">
+                            <div className="font-semibold text-[#18181B]">{u.name || "Użytkownik"}</div>
+                            <div className="text-[11px] text-[#71717A]">{u.email}</div>
                           </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
-                                u.role === "ADMIN"
-                                  ? "bg-[#EDF2FF] text-[#0052FF] border-[#C7D7FE]"
-                                  : "bg-[#F4F2ED] text-[#373B40] border-[#E5E3DC]"
-                              }`}
-                            >
+                          <td className="py-3.5 px-5">
+                            <span className={u.role === "ADMIN" ? "pill-demo" : "pill-neutral"}>
                               {u.role}
                             </span>
                           </td>
-                          <td className="py-3 px-4 font-mono text-[#5C6168]">
+                          <td className="py-3.5 px-5 text-[#52525B] tabular-nums">
                             {new Date(u.createdAt).toLocaleDateString("pl-PL")}
                           </td>
-                          <td className="py-3 px-4 text-right font-mono font-semibold text-[#111315]">
+                          <td className="py-3.5 px-5 text-right font-semibold text-[#18181B] tabular-nums">
                             {u._count?.connections ?? 1}
                           </td>
                         </tr>
@@ -203,41 +158,40 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Recent Global Scans */}
-              <div className="pci-card overflow-hidden">
-                <div className="p-5 border-b border-[#E5E3DC]">
-                  <span className="pci-eyebrow">Dziennik Zdarzeń</span>
-                  <h3 className="text-sm font-semibold text-[#111315] mt-0.5">
-                    Ostatnie Audyty w Platformie
-                  </h3>
+              {/* Recent Scans */}
+              <div className="studio-card overflow-hidden">
+                <div className="p-5 border-b border-[#F1EFEA]">
+                  <h2 className="text-sm font-bold text-[#18181B]">
+                    Ostatnie sprawdzenia na platformie
+                  </h2>
                 </div>
-                <div className="divide-y divide-[#EFECE6]">
+                <div className="divide-y divide-[#F1EFEA]">
                   {(stats?.recentScans || []).length === 0 ? (
-                    <div className="p-8 text-center text-xs text-[#868C94] font-mono">
-                      Brak zarejestrowanych audytów.
+                    <div className="p-8 text-center text-xs text-[#71717A]">
+                      Brak zapisanych raportów.
                     </div>
                   ) : (
                     (stats?.recentScans || []).map((scan: any) => (
                       <div
                         key={scan.id}
-                        className="p-4 sm:px-5 flex items-center justify-between text-xs hover:bg-[#FAF9F6] transition"
+                        className="p-4 sm:px-5 flex items-center justify-between text-xs hover:bg-[#FAF8F5] transition"
                       >
                         <div>
-                          <div className="font-semibold text-[#111315]">
+                          <div className="font-semibold text-[#18181B]">
                             {scan.shopConnection?.name || "Sklep Base.com"}
                           </div>
-                          <div className="text-[11px] font-mono text-[#5C6168] mt-0.5">
-                            Najemca: {scan.user?.email} • {new Date(scan.startedAt).toLocaleString("pl-PL")}
+                          <div className="text-[11px] text-[#71717A] mt-0.5">
+                            {scan.user?.email} • {new Date(scan.startedAt).toLocaleString("pl-PL")}
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-[#FAF9F6] border border-[#E5E3DC] text-[#111315]">
-                            Health: {scan.healthScore}%
+                          <span className="pill-neutral font-bold tabular-nums">
+                            {scan.healthScore}%
                           </span>
                           <Link
                             href={`/scans/${scan.id}`}
-                            className="btn-secondary-surface py-1 px-2.5 text-[11px]"
+                            className="btn-studio-secondary py-1.5 px-3 text-[11px]"
                           >
                             <span>Raport</span>
                             <ArrowRight className="w-3 h-3" />

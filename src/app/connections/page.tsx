@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { AppSidebar } from "@/components/AppSidebar";
 import {
   Key,
-  ShieldCheck,
   Plus,
   Play,
   Trash2,
@@ -17,9 +15,6 @@ import {
   ExternalLink,
   HelpCircle,
   Sparkles,
-  Info,
-  ChevronRight,
-  Database,
 } from "lucide-react";
 
 export default function ConnectionsPage() {
@@ -70,12 +65,12 @@ export default function ConnectionsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd dodawania połączenia.");
+        throw new Error(data.error || "Nie udało się zapisać połączenia.");
       }
 
       setFeedback({
         type: "success",
-        text: "Klucz API Base.com został pomyślnie zaszyfrowany i zapisany!",
+        text: "Sklep został bezpiecznie połączony! Możesz teraz uruchomić sprawdzenie.",
       });
       setName("");
       setToken("");
@@ -95,18 +90,18 @@ export default function ConnectionsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "Sklep Demonstracyjny (Dane Syntetyczne)",
+          name: "Sklep Przykładowy (Podgląd)",
           token: "demo_bl_token_8899aabbcc",
           testBeforeSave: false,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd ładowania sklepu demo.");
+        throw new Error(data.error || "Nie udało się przygotować sklepu przykładowego.");
       }
       setFeedback({
         type: "success",
-        text: "Załadowano sklep demonstracyjny z syntetycznymi danymi!",
+        text: "Sklep przykładowy jest gotowy! Kliknij „Sprawdź sklep teraz”, aby zobaczyć raport.",
       });
       fetchConnections();
     } catch (err: any) {
@@ -122,18 +117,18 @@ export default function ConnectionsPage() {
       const res = await fetch(`/api/connections/${id}/test`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Test połączenia nie powiódł się.");
+        throw new Error(data.error || "Nie udało się połączyć ze sklepem.");
       }
-      alert(`Sukces: ${data.message}`);
+      alert(`Połączenie działa poprawnie: ${data.message}`);
     } catch (err: any) {
-      alert(`Błąd: ${err.message}`);
+      alert(`Problem z połączeniem: ${err.message}`);
     } finally {
       setTestingId(null);
     }
   };
 
   const handleDeleteConnection = async (id: string, shopName: string) => {
-    if (!confirm(`Czy na pewno chcesz usunąć połączenie ze sklepem "${shopName}"?`)) {
+    if (!confirm(`Czy na pewno chcesz odłączyć sklep "${shopName}"?`)) {
       return;
     }
     setDeletingId(id);
@@ -141,7 +136,7 @@ export default function ConnectionsPage() {
       const res = await fetch(`/api/connections/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd usuwania połączenia.");
+        throw new Error(data.error || "Nie udało się usunąć połączenia.");
       }
       fetchConnections();
     } catch (err: any) {
@@ -157,7 +152,7 @@ export default function ConnectionsPage() {
       const res = await fetch(`/api/connections/${id}/scan`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd uruchomienia audytu.");
+        throw new Error(data.error || "Nie udało się uruchomić sprawdzenia.");
       }
       router.push(`/scans/${data.report.id}`);
     } catch (err: any) {
@@ -167,138 +162,133 @@ export default function ConnectionsPage() {
   };
 
   const isDemo = (conn: any) => {
-    const isMaskedDemo = conn.maskedToken && (conn.maskedToken.startsWith("demo_") || conn.maskedToken.includes("demo"));
-    const isNamedDemo = conn.name && (conn.name.toLowerCase().includes("demo") || conn.name.toLowerCase().includes("syntetyczn"));
+    const isMaskedDemo =
+      conn.maskedToken &&
+      (conn.maskedToken.startsWith("demo_") || conn.maskedToken.includes("demo"));
+    const isNamedDemo =
+      conn.name &&
+      (conn.name.toLowerCase().includes("demo") ||
+        conn.name.toLowerCase().includes("syntetyczn") ||
+        conn.name.toLowerCase().includes("przykładow"));
     return Boolean(isMaskedDemo || isNamedDemo);
   };
 
   const activeStore = connections[0];
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8F7F4] text-[#111315]">
-      {/* Persistent Left Sidebar */}
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#FAF8F5] text-[#18181B]">
       <AppSidebar
         connectionsCount={connections.length}
         activeStoreName={activeStore?.name || "Brak połączonego sklepu"}
         isDemo={activeStore ? isDemo(activeStore) : false}
       />
 
-      {/* Main Workspace */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Sticky Workspace Top Header */}
-        <header className="sticky top-0 z-30 h-14 px-4 sm:px-8 bg-[#F8F7F4]/90 backdrop-blur-md border-b border-[#E5E3DC] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-medium text-[#5C6168]">Infrastruktura Danych</span>
-            <span className="text-[#CFCBC2]">/</span>
-            <h1 className="text-xs sm:text-sm font-semibold text-[#111315] truncate">
-              Integracje Base.com
+        {/* Sticky Top Header */}
+        <header className="sticky top-0 z-30 h-16 px-4 sm:px-8 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E8E4DC] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-sm sm:text-base font-semibold text-[#18181B] truncate">
+              Połączone sklepy
             </h1>
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#FAF9F6] border border-[#E5E3DC] text-[#5C6168]">
+            <span className="pill-neutral">
               {connections.length} {connections.length === 1 ? "sklep" : "sklepy"}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <a
-              href="https://panel.baselinker.com"
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary-surface text-xs"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-[#5C6168]" />
-              <span className="hidden sm:inline">Panel Base.com</span>
-            </a>
-          </div>
+          <a
+            href="https://panel.baselinker.com"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-studio-secondary text-xs"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-[#71717A]" />
+            <span>Otwórz Base.com</span>
+          </a>
         </header>
 
-        {/* Workspace Body */}
-        <div className="p-4 sm:p-8 max-w-[1400px] w-full mx-auto space-y-6">
-          {/* Security Specification Card */}
-          <div className="pci-card p-5 bg-[#FFFFFF] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="p-4 sm:p-8 max-w-6xl w-full mx-auto space-y-6">
+          {/* Calm Read-Only Reassurance Banner */}
+          <div className="studio-card p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="w-9 h-9 rounded-md bg-[#FAF9F6] border border-[#E5E3DC] flex items-center justify-center shrink-0 text-[#0052FF]">
-                <Lock className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-xl bg-[#F0FDFA] border border-[#99F6E4] flex items-center justify-center shrink-0 text-[#0F766E]">
+                <Lock className="w-5 h-5" />
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-[#111315]">
-                    Szyfrowanie Poświadczeń AES-256-GCM
+                  <h2 className="text-sm font-semibold text-[#18181B]">
+                    Połączenie bezpieczne — tylko do odczytu
                   </h2>
-                  <span className="badge-active text-[10px]">Tryb Read-Only</span>
+                  <span className="pill-healthy">Bez zmian w sklepie</span>
                 </div>
-                <p className="text-xs text-[#5C6168] max-w-3xl leading-relaxed">
-                  Twój token API jest natychmiast szyfrowany algorytmem AES-256-GCM z losowym wektorem IV
-                  i tagiem uwierzytelniającym przed zapisem w bazie. Token nigdy nie trafia do przeglądarki
-                  ani logów, a silnik diagnostyczny wykonuje wyłącznie zapytania odczytu.
+                <p className="text-xs text-[#52525B] max-w-2xl leading-relaxed">
+                  Twój klucz dostępu jest bezpiecznie zaszyfrowany. BaseDoctor wyłącznie przegląda
+                  produkty, stany i zamówienia, aby przygotować raport — nigdy nie modyfikuje cen ani
+                  ofert.
                 </p>
               </div>
             </div>
-            <div className="font-mono text-xs text-[#046C4E] bg-[#ECFDF5] border border-[#A7F3D0] px-2.5 py-1 rounded shrink-0 font-semibold">
-              TLS 1.3 • connector.php
-            </div>
           </div>
 
-          {/* Step-by-Step Onboarding Guide */}
-          <div className="pci-card p-5 space-y-3">
-            <div className="flex items-center gap-2 text-[#111315] font-semibold text-xs">
-              <HelpCircle className="w-4 h-4 text-[#0052FF]" />
-              <span>Instrukcja generowania tokena API w BaseLinkerze</span>
+          {/* 4-Step Guide */}
+          <div className="studio-card p-6 space-y-4">
+            <div className="flex items-center gap-2 text-[#18181B] font-semibold text-sm">
+              <HelpCircle className="w-4 h-4 text-[#0F766E]" />
+              <span>Jak w 1 minutę pobrać klucz dostępu z Base.com?</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              <div className="p-3.5 rounded-md bg-[#FAF9F6] border border-[#EFECE6] space-y-1">
-                <div className="font-mono text-[10px] font-bold text-[#868C94]">KROK 01</div>
-                <div className="font-semibold text-[#111315]">Zaloguj się</div>
-                <p className="text-[11px] text-[#5C6168] leading-relaxed">
-                  Zaloguj się na swoje konto w panel.baselinker.com.
+              <div className="p-4 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-1">
+                <div className="text-[11px] font-bold text-[#0F766E]">Krok 1</div>
+                <div className="font-semibold text-[#18181B]">Zaloguj się do Base.com</div>
+                <p className="text-[#52525B] leading-relaxed">
+                  Wejdź na swoje konto w panelu BaseLinker / Base.com.
                 </p>
               </div>
-              <div className="p-3.5 rounded-md bg-[#FAF9F6] border border-[#EFECE6] space-y-1">
-                <div className="font-mono text-[10px] font-bold text-[#868C94]">KROK 02</div>
-                <div className="font-semibold text-[#111315]">Przejdź do API</div>
-                <p className="text-[11px] text-[#5C6168] leading-relaxed">
-                  Kliknij profil konta → <strong>Moje konto</strong> → zakładka <strong>API</strong>.
+              <div className="p-4 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-1">
+                <div className="text-[11px] font-bold text-[#0F766E]">Krok 2</div>
+                <div className="font-semibold text-[#18181B]">Otwórz zakładkę API</div>
+                <p className="text-[#52525B] leading-relaxed">
+                  Kliknij ikonę profilu w rogu → <strong>Moje konto</strong> → <strong>API</strong>.
                 </p>
               </div>
-              <div className="p-3.5 rounded-md bg-[#FAF9F6] border border-[#EFECE6] space-y-1">
-                <div className="font-mono text-[10px] font-bold text-[#868C94]">KROK 03</div>
-                <div className="font-semibold text-[#111315]">Skopiuj Token</div>
-                <p className="text-[11px] text-[#5C6168] leading-relaxed">
-                  Skopiuj ciąg znaków tokenu. Rekomendujemy uprawnienia tylko do odczytu.
+              <div className="p-4 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-1">
+                <div className="text-[11px] font-bold text-[#0F766E]">Krok 3</div>
+                <div className="font-semibold text-[#18181B]">Skopiuj swój token</div>
+                <p className="text-[#52525B] leading-relaxed">
+                  Zaznacz i skopiuj wygenerowany ciąg znaków (token).
                 </p>
               </div>
-              <div className="p-3.5 rounded-md bg-[#FAF9F6] border border-[#EFECE6] space-y-1">
-                <div className="font-mono text-[10px] font-bold text-[#868C94]">KROK 04</div>
-                <div className="font-semibold text-[#111315]">Wklej i zdiagnozuj</div>
-                <p className="text-[11px] text-[#5C6168] leading-relaxed">
-                  Wklej token w formularzu poniżej. System zweryfikuje połączenie.
+              <div className="p-4 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-1">
+                <div className="text-[11px] font-bold text-[#0F766E]">Krok 4</div>
+                <div className="font-semibold text-[#18181B]">Wklej obok i sprawdź</div>
+                <p className="text-[#52525B] leading-relaxed">
+                  Wklej klucz w formularzu poniżej i uruchom pierwsze badanie sklepu.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Form and Connections List (1:2 Split) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Add Connection Card */}
-            <div className="pci-card p-6 space-y-5">
+            {/* Add Connection Form */}
+            <div className="studio-card p-6 space-y-5">
               <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4 text-[#0052FF]" />
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-[#111315]">
-                  Podłącz Nowy Sklep
+                <Plus className="w-4 h-4 text-[#0F766E]" />
+                <h2 className="text-sm font-bold text-[#18181B]">
+                  Dodaj nowy sklep
                 </h2>
               </div>
 
               {feedback && (
                 <div
-                  className={`p-3 rounded-md text-xs flex items-center gap-2 ${
+                  className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
                     feedback.type === "success"
-                      ? "bg-[#ECFDF5] border border-[#A7F3D0] text-[#046C4E]"
-                      : "bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]"
+                      ? "bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857]"
+                      : "bg-[#FFF1F2] border border-[#FECDD3] text-[#BE123C]"
                   }`}
                 >
                   {feedback.type === "success" ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[#059669]" />
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                   ) : (
-                    <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+                    <AlertCircle className="w-4 h-4 shrink-0" />
                   )}
                   <span>{feedback.text}</span>
                 </div>
@@ -306,98 +296,100 @@ export default function ConnectionsPage() {
 
               <form onSubmit={handleAddConnection} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#5C6168] mb-1">
-                    Nazwa Sklepu / Identyfikator
+                  <label className="block text-xs font-medium text-[#3F3F46] mb-1.5">
+                    Nazwa sklepu (dla Twojej wygody)
                   </label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="np. Główny Sklep BaseLinker"
-                    className="w-full px-3 py-2 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                    placeholder="np. Mój Sklep Główny"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] bg-[#FAF8F5] focus:bg-white transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#5C6168] mb-1">
-                    Token API Base.com (X-BLToken)
+                  <label className="block text-xs font-medium text-[#3F3F46] mb-1.5">
+                    Klucz dostępu (Token z Base.com)
                   </label>
                   <input
                     type="password"
                     required
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
-                    placeholder="Wklej token z panelu BaseLinker"
-                    className="w-full px-3 py-2 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition font-mono"
+                    placeholder="Wklej skopiowany klucz..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] bg-[#FAF8F5] focus:bg-white transition font-mono"
                   />
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#373B40]">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#52525B]">
                   <input
                     type="checkbox"
                     checked={testBeforeSave}
                     onChange={(e) => setTestBeforeSave(e.target.checked)}
-                    className="rounded border-[#E5E3DC] text-[#0052FF] focus:ring-[#0052FF]"
+                    className="rounded border-[#E8E4DC] text-[#0F766E] focus:ring-[#0F766E]"
                   />
-                  <span>Zweryfikuj ważność tokenu przed zapisem</span>
+                  <span>Sprawdź od razu, czy klucz działa poprawnie</span>
                 </label>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary-cobalt w-full py-2.5 cursor-pointer"
+                  className="btn-studio-brand w-full py-2.5 cursor-pointer"
                 >
                   <Lock className="w-3.5 h-3.5" />
-                  <span>{submitting ? "Szyfrowanie i test..." : "Zapisz i Zaszyfruj Token"}</span>
+                  <span>{submitting ? "Zapisywanie..." : "Połącz sklep bezpiecznie"}</span>
                 </button>
               </form>
 
-              {/* 1-Click Synthetic Demo Button */}
-              <div className="pt-4 border-t border-[#EFECE6] space-y-2">
+              {/* 1-Click Demo Card */}
+              <div className="pt-4 border-t border-[#F1EFEA] space-y-2">
                 <button
                   type="button"
                   onClick={handleLoadDemoStore}
                   disabled={submitting}
-                  className="btn-secondary-surface w-full py-2.5 cursor-pointer text-xs text-[#0052FF] border-[#C7D7FE] bg-[#EDF2FF] hover:bg-[#DBE4FF]"
+                  className="btn-studio-secondary w-full py-2.5 cursor-pointer border-[#99F6E4] bg-[#F0FDFA] text-[#0F766E] hover:bg-[#CCFBF1]/50"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-[#0052FF]" />
-                  <span>Załaduj Sklep Demonstracyjny (Demo)</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Wypróbuj na sklepie przykładowym</span>
                 </button>
-                <p className="text-[10px] text-[#868C94] text-center">
-                  Tworzy bezpieczne środowisko z syntetycznymi danymi testowymi.
+                <p className="text-[11px] text-[#71717A] text-center">
+                  Jedno kliknięcie tworzy sklep testowy, aby zobaczyć jak działa raport.
                 </p>
               </div>
             </div>
 
-            {/* Existing Connections Roster */}
+            {/* Connected Stores List */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="pci-eyebrow">Zarejestrowane Magazyny Kluczy</span>
-                <span className="font-mono text-[11px] text-[#5C6168]">
-                  Standard AES-256-GCM
-                </span>
+                <h2 className="text-sm font-bold text-[#18181B]">
+                  Twoje sklepy ({connections.length})
+                </h2>
               </div>
 
               {loading ? (
-                <div className="pci-card p-12 text-center text-xs text-[#5C6168] font-mono animate-pulse">
-                  Ładowanie połączeń...
+                <div className="studio-card p-12 text-center text-xs text-[#71717A] animate-pulse">
+                  Ładowanie listy sklepów...
                 </div>
               ) : connections.length === 0 ? (
-                <div className="pci-card p-12 text-center space-y-3">
-                  <div className="w-10 h-10 rounded-md bg-[#FAF9F6] border border-[#E5E3DC] text-[#0052FF] mx-auto flex items-center justify-center">
+                <div className="studio-card p-12 text-center space-y-3">
+                  <div className="w-11 h-11 rounded-2xl bg-[#F0FDFA] border border-[#99F6E4] text-[#0F766E] mx-auto flex items-center justify-center">
                     <Key className="w-5 h-5" />
                   </div>
-                  <h3 className="font-semibold text-[#111315] text-sm">Brak podłączonych sklepów</h3>
-                  <p className="text-xs text-[#5C6168] max-w-sm mx-auto">
-                    Wklej token API Base.com w formularzu obok lub kliknij przycisk trybu demonstracyjnego.
+                  <h3 className="font-bold text-[#18181B] text-sm">
+                    Nie masz jeszcze podłączonego żadnego sklepu
+                  </h3>
+                  <p className="text-xs text-[#52525B] max-w-sm mx-auto leading-relaxed">
+                    Wklej swój klucz z Base.com w formularzu obok lub kliknij poniżej, aby obejrzeć
+                    gotowy sklep przykładowy.
                   </p>
                   <button
                     onClick={handleLoadDemoStore}
-                    className="btn-primary-cobalt inline-flex cursor-pointer mt-2"
+                    className="btn-studio-brand inline-flex cursor-pointer mt-2"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Załaduj Sklep Demonstracyjny</span>
+                    <span>Załaduj sklep przykładowy</span>
                   </button>
                 </div>
               ) : (
@@ -407,23 +399,23 @@ export default function ConnectionsPage() {
                     return (
                       <div
                         key={conn.id}
-                        className="pci-card p-5 space-y-3 hover:border-[#CFCBC2] transition"
+                        className="studio-card-hover p-5 space-y-3"
                       >
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="font-semibold text-[#111315] text-sm">{conn.name}</h3>
+                              <h3 className="font-bold text-[#18181B] text-sm">{conn.name}</h3>
                               {demoMode ? (
-                                <span className="badge-demo">DEMO • SYNTETYCZNE</span>
+                                <span className="pill-demo">Sklep przykładowy</span>
                               ) : (
-                                <span className="badge-active">
-                                  <CheckCircle2 className="w-3 h-3 text-[#059669]" />
-                                  API AKTYWNE
+                                <span className="pill-healthy">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Połączony i bezpieczny
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs font-mono text-[#5C6168] mt-1">
-                              Zaszyfrowany token: <span className="text-[#111315] font-semibold">{conn.maskedToken}</span> • Dodano:{" "}
+                            <div className="text-xs text-[#71717A] mt-1">
+                              Klucz ukryty: <code className="font-mono text-[#3F3F46]">{conn.maskedToken}</code> • Dodano{" "}
                               {new Date(conn.createdAt).toLocaleDateString("pl-PL")}
                             </div>
                           </div>
@@ -432,31 +424,30 @@ export default function ConnectionsPage() {
                             <button
                               onClick={() => handleTestConnection(conn.id)}
                               disabled={testingId === conn.id}
-                              className="btn-secondary-surface py-1.5 px-3 text-xs cursor-pointer"
-                              title="Zweryfikuj komunikację z API"
+                              className="btn-studio-secondary py-2 px-3 text-xs cursor-pointer"
                             >
                               <RefreshCw
                                 className={`w-3.5 h-3.5 ${
-                                  testingId === conn.id ? "animate-spin text-[#0052FF]" : "text-[#5C6168]"
+                                  testingId === conn.id ? "animate-spin text-[#0F766E]" : "text-[#71717A]"
                                 }`}
                               />
-                              <span>{testingId === conn.id ? "Test..." : "Test Połączenia"}</span>
+                              <span>{testingId === conn.id ? "Sprawdzam..." : "Testuj"}</span>
                             </button>
 
                             <button
                               onClick={() => handleRunScan(conn.id)}
                               disabled={scanningId === conn.id}
-                              className="btn-primary-cobalt py-1.5 px-3 text-xs cursor-pointer"
+                              className="btn-studio-brand py-2 px-3.5 text-xs cursor-pointer"
                             >
                               <Play className="w-3 h-3 fill-white" />
-                              <span>{scanningId === conn.id ? "Skanowanie..." : "Uruchom Skan"}</span>
+                              <span>{scanningId === conn.id ? "Sprawdzanie..." : "Sprawdź sklep"}</span>
                             </button>
 
                             <button
                               onClick={() => handleDeleteConnection(conn.id, conn.name)}
                               disabled={deletingId === conn.id}
-                              className="p-2 rounded-md border border-[#E5E3DC] text-[#868C94] hover:text-[#B91C1C] hover:bg-[#FEF2F2] hover:border-[#FECACA] transition cursor-pointer"
-                              title="Usuń połączenie"
+                              className="p-2 rounded-xl border border-[#E8E4DC] text-[#71717A] hover:text-[#BE123C] hover:bg-[#FFF1F2] hover:border-[#FECDD3] transition cursor-pointer"
+                              title="Odłącz sklep"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

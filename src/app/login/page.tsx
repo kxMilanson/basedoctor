@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle, Sparkles, Key } from "lucide-react";
+import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd logowania.");
+        throw new Error(data.error || "Nie udało się zalogować.");
       }
 
       router.push("/dashboard");
@@ -44,66 +44,64 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F7F4] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#111315]">
+    <div className="min-h-[calc(100vh-140px)] bg-[#FAF8F5] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#18181B]">
       <div className="max-w-md w-full mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 group mb-1">
-            <div className="w-8 h-8 rounded-md bg-[#111315] text-white flex items-center justify-center shadow-xs group-hover:bg-[#0052FF] transition-colors">
-              <ShieldCheck className="w-4.5 h-4.5" />
+          <Link href="/" className="inline-flex items-center gap-2.5 group mb-1">
+            <div className="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shadow-xs group-hover:bg-[#115E59] transition-colors">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <span className="text-base font-bold text-[#111315] tracking-tight">
-              Base<span className="text-[#0052FF]">Doctor</span>
+            <span className="text-lg font-bold text-[#18181B] tracking-tight">
+              BaseDoctor
             </span>
           </Link>
-          <h1 className="text-xl font-bold tracking-tight text-[#111315]">
-            Zaloguj się do BaseDoctor
+          <h1 className="text-2xl font-bold tracking-tight text-[#18181B]">
+            Zaloguj się do swojego sklepu
           </h1>
-          <p className="text-xs text-[#5C6168]">
-            Dostęp do audytów katalogu SKU, magazynu i zamówień Base.com
+          <p className="text-xs sm:text-sm text-[#52525B]">
+            Sprawdź aktualną kondycję produktów, magazynu i zamówień
           </p>
         </div>
 
-        <div className="pci-card p-6 sm:p-7 space-y-5">
+        <div className="studio-card p-6 sm:p-8 space-y-5">
           {error && (
-            <div className="p-3 rounded-md bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+            <div className="p-3.5 rounded-xl bg-[#FFF1F2] border border-[#FECDD3] text-[#BE123C] text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
-                Adres E-mail
+              <label className="block text-xs font-medium text-[#3F3F46] mb-1.5">
+                Adres e-mail
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-[#A1A1AA] absolute left-3.5 top-3" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="jan@twojsklep.pl"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] bg-[#FAF8F5] focus:bg-white transition"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168]">
-                  Hasło
-                </label>
-              </div>
+              <label className="block text-xs font-medium text-[#3F3F46] mb-1.5">
+                Hasło
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-[#A1A1AA] absolute left-3.5 top-3" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] bg-[#FAF8F5] focus:bg-white transition"
                 />
               </div>
             </div>
@@ -111,55 +109,57 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary-cobalt w-full py-2.5 text-xs font-semibold cursor-pointer"
+              className="btn-studio-brand w-full py-3 text-xs cursor-pointer"
             >
-              <span>{loading ? "Weryfikacja..." : "Zaloguj się"}</span>
+              <span>{loading ? "Logowanie..." : "Zaloguj się"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
 
           {/* 1-Click Fast Demo Logins */}
-          <div className="pt-4 border-t border-[#EFECE6] space-y-2">
-            <span className="pci-eyebrow block">Szybkie konta testowe:</span>
+          <div className="pt-4 border-t border-[#F1EFEA] space-y-2.5">
+            <p className="text-xs font-medium text-[#71717A]">
+              Chcesz tylko zobaczyć jak działa aplikacja? Kliknij, aby uzupełnić konto testowe:
+            </p>
             <div className="grid grid-cols-1 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickDemo("jan@twojsklep.pl", "User123!")}
-                className="text-left text-xs p-2.5 rounded-md bg-[#FAF9F6] hover:bg-[#EDF2FF] hover:border-[#C7D7FE] border border-[#E5E3DC] transition flex items-center justify-between group cursor-pointer"
+                className="text-left text-xs p-3 rounded-xl bg-[#FAF8F5] hover:bg-[#F0FDFA] hover:border-[#99F6E4] border border-[#E8E4DC] transition flex items-center justify-between group cursor-pointer"
               >
                 <div>
-                  <span className="font-semibold text-[#111315] block group-hover:text-[#0052FF]">
-                    Konto Demonstracyjne (Sklep)
+                  <span className="font-semibold text-[#18181B] block group-hover:text-[#0F766E]">
+                    Przykładowe konto sprzedawcy
                   </span>
-                  <span className="text-[11px] font-mono text-[#5C6168]">
+                  <span className="text-[11px] text-[#71717A]">
                     jan@twojsklep.pl • User123!
                   </span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-[#868C94] group-hover:text-[#0052FF] transition" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#A1A1AA] group-hover:text-[#0F766E] transition" />
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDemo("admin@basedoctor.pl", "Admin123!")}
-                className="text-left text-xs p-2.5 rounded-md bg-[#FAF9F6] hover:bg-[#EDF2FF] hover:border-[#C7D7FE] border border-[#E5E3DC] transition flex items-center justify-between group cursor-pointer"
+                className="text-left text-xs p-3 rounded-xl bg-[#FAF8F5] hover:bg-[#F0FDFA] hover:border-[#99F6E4] border border-[#E8E4DC] transition flex items-center justify-between group cursor-pointer"
               >
                 <div>
-                  <span className="font-semibold text-[#111315] block group-hover:text-[#0052FF]">
-                    Administrator Systemu
+                  <span className="font-semibold text-[#18181B] block group-hover:text-[#0F766E]">
+                    Konto administratora
                   </span>
-                  <span className="text-[11px] font-mono text-[#5C6168]">
+                  <span className="text-[11px] text-[#71717A]">
                     admin@basedoctor.pl • Admin123!
                   </span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-[#868C94] group-hover:text-[#0052FF] transition" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#A1A1AA] group-hover:text-[#0F766E] transition" />
               </button>
             </div>
           </div>
         </div>
 
-        <p className="text-center text-xs text-[#5C6168]">
-          Nie posiadasz jeszcze konta?{" "}
-          <Link href="/register" className="text-[#0052FF] font-semibold hover:underline">
-            Zarejestruj się bezpłatnie
+        <p className="text-center text-xs text-[#52525B]">
+          Nie masz jeszcze konta?{" "}
+          <Link href="/register" className="text-[#0F766E] font-semibold hover:underline">
+            Załóż darmowe konto
           </Link>
         </p>
       </div>

@@ -5,31 +5,40 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/AppSidebar";
 import {
-  Activity,
-  AlertOctagon,
+  AlertCircle,
   AlertTriangle,
   ArrowRight,
-  ArrowUpRight,
   CheckCircle2,
   Clock,
-  Database,
   Download,
-  FileText,
-  Filter,
   Info,
   Key,
-  Layers,
-  Lock,
   Package,
   Play,
   RefreshCw,
   Search,
   ShieldCheck,
-  ShoppingCart,
-  SlidersHorizontal,
-  TrendingUp,
-  Wrench,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  Truck,
+  Warehouse,
 } from "lucide-react";
+
+function getFriendlyCategoryName(category: string): string {
+  switch (category) {
+    case "PRODUCT":
+    case "PRICING":
+      return "Produkty i oferty";
+    case "INVENTORY":
+      return "Magazyn i stany";
+    case "ORDER":
+    case "SHIPPING":
+      return "Zamówienia i wysyłka";
+    default:
+      return "Ogólne";
+  }
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -62,7 +71,7 @@ export default function DashboardPage() {
         const detailRes = await fetch(`/api/scans/${scanList[0].id}`);
         if (detailRes.ok) {
           const detailData = await detailRes.json();
-          setLatestScanDetail(detailData.report || null);
+          setLatestScanDetail(detailData.report || detailData.scan || null);
         }
       }
     } catch (err) {
@@ -85,15 +94,20 @@ export default function DashboardPage() {
   const activeConnection =
     connections.find((c) => c.id === selectedConnId) || connections[0] || null;
 
-  const isDemoActive =
+  const isDemoActive = Boolean(
     (latestScan &&
       (latestScan.shopConnection?.name?.toLowerCase().includes("demo") ||
         latestScan.shopConnection?.name?.toLowerCase().includes("syntetyczn") ||
+        latestScan.shopConnection?.name?.toLowerCase().includes("przykładow") ||
         latestScan.id?.includes("demo"))) ||
-    (connections.length > 0 &&
-      connections.some(
-        (c) => c.name?.toLowerCase().includes("demo") || c.maskedToken?.includes("demo")
-      ));
+      (connections.length > 0 &&
+        connections.some(
+          (c) =>
+            c.name?.toLowerCase().includes("demo") ||
+            c.name?.toLowerCase().includes("przykładow") ||
+            c.maskedToken?.includes("demo")
+        ))
+  );
 
   const handleRunQuickScan = async () => {
     if (connections.length === 0) {
@@ -104,7 +118,7 @@ export default function DashboardPage() {
     const targetConnId = selectedConnId || connections[0].id;
     setScanning(true);
     setActiveScanMsg(
-      "Pobieranie katalogu i zamówień z Base.com (Read-Only) oraz ewaluacja 15 reguł diagnostycznych..."
+      "Sprawdzamy Twój katalog produktów, stany magazynowe i zamówienia (bez żadnych zmian w sklepie)..."
     );
 
     try {
@@ -113,7 +127,7 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd wykonania skanu.");
+        throw new Error(data.error || "Nie udało się wykonać sprawdzenia sklepu.");
       }
       router.push(`/scans/${data.report.id}`);
     } catch (err: any) {
@@ -125,27 +139,27 @@ export default function DashboardPage() {
 
   const handleLoadDemo = async () => {
     setScanning(true);
-    setActiveScanMsg("Inicjalizacja izolowanego środowiska demonstracyjnego i audytu...");
+    setActiveScanMsg("Przygotowujemy przykładowy sklep z gotowymi danymi do podglądu...");
     try {
       const res = await fetch("/api/connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "Sklep Demonstracyjny (Dane Syntetyczne)",
+          name: "Sklep Przykładowy (Podgląd)",
           token: "demo_bl_token_8899aabbcc",
           testBeforeSave: false,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd tworzenia demo.");
+        throw new Error(data.error || "Nie udało się utworzyć sklepu przykładowego.");
       }
       const scanRes = await fetch(`/api/connections/${data.connection.id}/scan`, {
         method: "POST",
       });
       const scanData = await scanRes.json();
       if (!scanRes.ok) {
-        throw new Error(scanData.error || "Błąd skanowania demo.");
+        throw new Error(scanData.error || "Nie udało się sprawdzić sklepu przykładowego.");
       }
       router.push(`/scans/${scanData.report.id}`);
     } catch (err: any) {
@@ -166,74 +180,119 @@ export default function DashboardPage() {
         const q = searchQuery.toLowerCase();
         const matchTitle = issue.title?.toLowerCase().includes(q);
         const matchEntity = issue.entityName?.toLowerCase().includes(q);
-        const matchId = issue.entityId?.toLowerCase().includes(q);
-        const matchCode = issue.code?.toLowerCase().includes(q);
-        return matchTitle || matchEntity || matchId || matchCode;
+        const matchIdentifier = issue.affectedIdentifier?.toLowerCase().includes(q);
+        const matchDesc = issue.description?.toLowerCase().includes(q);
+        return matchTitle || matchEntity || matchIdentifier || matchDesc;
       }
       return true;
     });
   }, [issues, issueFilter, searchQuery]);
 
-  // Compute severity distribution and chart series
+  // Aggregate into 3 friendly merchant business areas
+  const businessAreas = useMemo(() => {
+    const productIssues = issues.filter(
+      (i) => i.category === "PRODUCT" || i.category === "PRICING"
+    );
+    const inventoryIssues = issues.filter((i) => i.category === "INVENTORY");
+    const orderIssues = issues.filter(
+      (i) => i.category === "ORDER" || i.category === "SHIPPING"
+    );
+
+    const calcAreaScore = (list: any[]) => {
+      if (list.length === 0) return 100;
+      const penalty = list.reduce(
+        (acc, item) =>
+          acc + (item.severity === "CRITICAL" ? 18 : item.severity === "WARNING" ? 8 : 3),
+        0
+      );
+      return Math.max(15, 100 - penalty);
+    };
+
+    return [
+      {
+        title: "Produkty i oferty",
+        subtitle: "Kody SKU, EAN, ceny, wagi i zdjęcia w ofertach",
+        icon: ShoppingBag,
+        count: productIssues.length,
+        urgentCount: productIssues.filter((i) => i.severity === "CRITICAL").length,
+        score: calcAreaScore(productIssues),
+      },
+      {
+        title: "Magazyn i dostępność",
+        subtitle: "Zgodność stanów i ochrona przed sprzedażą braków",
+        icon: Warehouse,
+        count: inventoryIssues.length,
+        urgentCount: inventoryIssues.filter((i) => i.severity === "CRITICAL").length,
+        score: calcAreaScore(inventoryIssues),
+      },
+      {
+        title: "Zamówienia i wysyłka",
+        subtitle: "Terminowość nadań, płatności i numery przesyłek",
+        icon: Truck,
+        count: orderIssues.length,
+        urgentCount: orderIssues.filter((i) => i.severity === "CRITICAL").length,
+        score: calcAreaScore(orderIssues),
+      },
+    ];
+  }, [issues]);
+
   const totalIssues =
     (latestScan?.criticalCount ?? 0) +
     (latestScan?.warningCount ?? 0) +
     (latestScan?.infoCount ?? 0);
-  const critPct = totalIssues > 0 ? Math.round(((latestScan?.criticalCount ?? 0) / totalIssues) * 100) : 0;
-  const warnPct = totalIssues > 0 ? Math.round(((latestScan?.warningCount ?? 0) / totalIssues) * 100) : 0;
+  const critPct =
+    totalIssues > 0 ? Math.round(((latestScan?.criticalCount ?? 0) / totalIssues) * 100) : 0;
+  const warnPct =
+    totalIssues > 0 ? Math.round(((latestScan?.warningCount ?? 0) / totalIssues) * 100) : 0;
   const infoPct = totalIssues > 0 ? Math.max(0, 100 - critPct - warnPct) : 0;
 
-  // Trend chart data points (up to 7 most recent scans in chronological order)
   const chartPoints = useMemo(() => {
     if (scans.length === 0) return [];
-    return [...scans].slice(0, 7).reverse();
+    return [...scans].slice(0, 6).reverse();
   }, [scans]);
 
+  const healthHeadline =
+    score >= 80
+      ? "Twój sklep działa stabilnie i bezpiecznie"
+      : score >= 50
+      ? "Sklep działa, ale kilka spraw wymaga uporządkowania"
+      : "Uwaga — wykryliśmy błędy, które mogą blokować sprzedaż";
+
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8F7F4] text-[#111315]">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#FAF8F5] text-[#18181B]">
       {/* Persistent Left Sidebar */}
       <AppSidebar
         connectionsCount={connections.length}
         activeStoreName={
           activeConnection?.name ||
           latestScan?.shopConnection?.name ||
-          "Brak podłączonego sklepu"
+          "Brak połączonego sklepu"
         }
-        isDemo={Boolean(isDemoActive)}
+        isDemo={isDemoActive}
       />
 
-      {/* Main Workspace Container */}
+      {/* Main Workspace */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Workspace Header Bar */}
-        <header className="sticky top-0 z-30 h-14 px-4 sm:px-8 bg-[#F8F7F4]/90 backdrop-blur-md border-b border-[#E5E3DC] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xs font-medium text-[#5C6168] hidden sm:inline">
-              Diagnostyka
-            </span>
-            <span className="text-[#CFCBC2] hidden sm:inline">/</span>
-            <h1 className="text-xs sm:text-sm font-semibold text-[#111315] truncate">
-              Pulpit Diagnostyczny Sklepu
+        {/* Clean Top Header */}
+        <header className="sticky top-0 z-30 h-16 px-4 sm:px-8 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E8E4DC] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-sm sm:text-base font-semibold text-[#18181B] truncate">
+              Przegląd kondycji sklepu
             </h1>
-            {isDemoActive ? (
-              <span className="badge-demo font-mono text-[10px]">
-                TRYB DEMO • DANE SYNTETYCZNE
-              </span>
-            ) : (
-              <span className="badge-active font-mono text-[10px] hidden md:inline-flex">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#059669]" />
-                READ-ONLY ZWERYFIKOWANY
+            {isDemoActive && (
+              <span className="pill-demo hidden sm:inline-flex">
+                Sklep przykładowy
               </span>
             )}
           </div>
 
-          {/* Right Controls: Store Picker + Scan CTA */}
           <div className="flex items-center gap-2.5 shrink-0">
             {connections.length > 1 && (
               <select
                 value={selectedConnId}
                 onChange={(e) => setSelectedConnId(e.target.value)}
-                aria-label="Wybierz sklep do skanowania"
-                className="px-2.5 py-1.5 rounded-md bg-[#FFFFFF] border border-[#E5E3DC] text-xs font-medium text-[#111315] focus:outline-none focus:border-[#0052FF]"
+                aria-label="Wybierz sklep"
+                className="px-3 py-2 rounded-xl bg-white border border-[#E8E4DC] text-xs font-medium text-[#18181B] focus:outline-none focus:border-[#0F766E]"
               >
                 {connections.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -243,536 +302,379 @@ export default function DashboardPage() {
               </select>
             )}
 
-            <Link href="/connections" className="btn-secondary-surface hidden sm:inline-flex">
-              <Key className="w-3.5 h-3.5 text-[#5C6168]" />
-              <span>Klucze API ({connections.length})</span>
+            <Link href="/connections" className="btn-studio-secondary hidden sm:inline-flex">
+              <Store className="w-3.5 h-3.5 text-[#71717A]" />
+              <span>Sklepy ({connections.length})</span>
             </Link>
 
             <button
               onClick={handleRunQuickScan}
               disabled={scanning || connections.length === 0}
-              className="btn-primary-cobalt cursor-pointer"
+              className="btn-studio-brand cursor-pointer"
             >
               {scanning ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <Play className="w-3.5 h-3.5 fill-white" />
               )}
-              <span>{scanning ? "Trwa audyt..." : "Uruchom Audyt"}</span>
+              <span>{scanning ? "Sprawdzanie..." : "Sprawdź sklep teraz"}</span>
             </button>
           </div>
         </header>
 
-        {/* Workspace Body */}
-        <div className="p-4 sm:p-8 max-w-[1400px] w-full mx-auto space-y-6">
-          {/* Active Scan Progress Banner */}
+        {/* Main Content Area */}
+        <div className="p-4 sm:p-8 max-w-6xl w-full mx-auto space-y-6">
+          {/* Active Scan Banner */}
           {activeScanMsg && (
-            <div className="p-3.5 rounded-lg bg-[#EDF2FF] border border-[#C7D7FE] text-[#0A2158] text-xs flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <RefreshCw className="w-4 h-4 text-[#0052FF] animate-spin shrink-0" />
-                <span className="font-medium">{activeScanMsg}</span>
-              </div>
-              <span className="font-mono text-[11px] text-[#0040CC] font-semibold">
-                connector.php • TLS 1.3
-              </span>
+            <div className="p-4 rounded-2xl bg-[#F0FDFA] border border-[#99F6E4] text-[#134E4A] text-xs flex items-center gap-3">
+              <RefreshCw className="w-4 h-4 text-[#0F766E] animate-spin shrink-0" />
+              <span className="font-medium">{activeScanMsg}</span>
             </div>
           )}
 
-          {/* Demo Telemetry Notice Bar */}
+          {/* Friendly Demo Notice */}
           {isDemoActive && (
-            <div className="px-4 py-3 rounded-lg bg-[#FFFFFF] border border-[#C7D7FE] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="p-4 rounded-2xl bg-white border border-[#99F6E4] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-3">
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-[#EDF2FF] text-[#0052FF] border border-[#C7D7FE]">
-                  ŚRODOWISKO SYNTETYCZNE
-                </span>
-                <p className="text-xs text-[#373B40]">
-                  Analizujesz wzorcowy zbiór diagnostyczny prezentujący 15 reguł walidacyjnych.
-                  Żadne dane produkcyjne nie są modyfikowane.
+                <span className="pill-demo shrink-0">Tryb przykładowy</span>
+                <p className="text-xs text-[#3F3F46]">
+                  Oglądasz symulację sklepu, aby zobaczyć jak BaseDoctor wskazuje problemy i podpowiada rozwiązania.
                 </p>
               </div>
               <Link
                 href="/connections"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0052FF] hover:text-[#0040CC] shrink-0"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F766E] hover:text-[#115E59] shrink-0"
               >
-                <span>Podłącz produkcyjny token Base.com</span>
+                <span>Podłącz swój sklep Base.com</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           )}
 
-          {/* Loading Skeleton */}
+          {/* Loading State */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((n) => (
-                <div
-                  key={n}
-                  className="h-36 rounded-xl bg-[#FFFFFF] border border-[#E5E3DC] p-5 animate-pulse flex flex-col justify-between"
-                >
-                  <div className="h-3 w-28 bg-[#EAE7E0] rounded" />
-                  <div className="h-8 w-20 bg-[#EAE7E0] rounded" />
-                  <div className="h-2.5 w-full bg-[#F2F0EB] rounded" />
-                </div>
-              ))}
+            <div className="space-y-4">
+              <div className="h-48 rounded-2xl bg-white border border-[#E8E4DC] p-6 animate-pulse" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-32 rounded-2xl bg-white border border-[#E8E4DC] p-5 animate-pulse" />
+                ))}
+              </div>
             </div>
           ) : connections.length === 0 ? (
-            /* Precision Onboarding Empty State */
-            <div className="pci-card p-8 sm:p-10">
-              <div className="max-w-2xl mx-auto text-center space-y-5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F4F2ED] border border-[#E5E3DC] text-[11px] font-mono font-semibold text-[#373B40]">
-                  <Lock className="w-3 h-3 text-[#0052FF]" />
-                  ARCHITEKTURA ZERO-WRITE • TYLKO DO ODCZYTU
+            /* Warm Onboarding Empty State */
+            <div className="studio-card p-8 sm:p-12 text-center">
+              <div className="max-w-lg mx-auto space-y-5">
+                <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] border border-[#99F6E4] text-[#0F766E] mx-auto flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-xl font-bold tracking-tight text-[#111315]">
-                    Skonfiguruj pierwsze źródło diagnostyczne Base.com
+                  <h2 className="text-xl font-bold tracking-tight text-[#18181B]">
+                    Sprawdź, czy w Twoim sklepie wszystko działa jak należy
                   </h2>
-                  <p className="text-xs sm:text-sm text-[#5C6168] leading-relaxed">
-                    Podłącz swój klucz API Base.com (zaszyfrowany algorytmem AES-256-GCM) lub uruchom
-                    natychmiastowy audyt na danych syntetycznych, aby zweryfikować działanie 15 reguł
-                    integralności katalogu, stanów magazynowych i zamówień.
+                  <p className="text-sm text-[#52525B] leading-relaxed">
+                    Podłącz swój sklep w Base.com, aby w 30 sekund wykryć błędy w produktach,
+                    braki w stanach magazynowych i opóźnione wysyłki. BaseDoctor działa tylko
+                    w trybie podglądu — nigdy niczego nie zmienia w Twoim sklepie.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                  <Link href="/connections" className="btn-primary-cobalt px-5 py-2.5">
-                    <Key className="w-3.5 h-3.5" />
-                    <span>Podłącz sklep Base.com</span>
+                  <Link href="/connections" className="btn-studio-brand px-5 py-3">
+                    <Key className="w-4 h-4" />
+                    <span>Połącz swój sklep Base.com</span>
                   </Link>
                   <button
                     onClick={handleLoadDemo}
                     disabled={scanning}
-                    className="btn-secondary-surface px-5 py-2.5 cursor-pointer"
+                    className="btn-studio-secondary px-5 py-3 cursor-pointer"
                   >
-                    <Database className="w-3.5 h-3.5 text-[#0052FF]" />
-                    <span>Załaduj sklep demonstracyjny (1-klik)</span>
+                    <Sparkles className="w-4 h-4 text-[#0F766E]" />
+                    <span>Zobacz na sklepie przykładowym</span>
                   </button>
                 </div>
               </div>
             </div>
           ) : (
             <>
-              {/* ROW 1: 4-COLUMN ARCHITECTURAL KPI MATRIX */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                {/* KPI 1: Health Score */}
-                <div className="pci-card p-5 flex flex-col justify-between">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="pci-eyebrow">Indeks Integralności</span>
-                      <h2 className="text-xs font-semibold text-[#111315] mt-0.5">
-                        Health Score Katalogu
-                      </h2>
-                    </div>
-                    <span
-                      className={
-                        score >= 80
-                          ? "badge-active"
-                          : score >= 50
-                          ? "badge-warning"
-                          : "badge-critical"
-                      }
-                    >
-                      {score >= 80 ? "Optymalny" : score >= 50 ? "Wymaga uwagi" : "Krytyczny"}
-                    </span>
-                  </div>
-
-                  <div className="my-4 flex items-baseline justify-between">
-                    <div className="font-mono text-4xl font-bold tracking-tight text-[#111315] tabular-nums">
-                      {latestScan ? `${score}%` : "—"}
-                    </div>
-                    {scoreDelta !== null && (
+              {/* 1. HERO STORE HEALTH BANNER — Answers: "Is my store operating correctly?" */}
+              <section className="studio-card p-6 sm:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                  <div className="lg:col-span-8 space-y-4">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <span
-                        className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${
-                          scoreDelta >= 0
-                            ? "bg-[#ECFDF5] text-[#046C4E]"
-                            : "bg-[#FEF2F2] text-[#B91C1C]"
-                        }`}
-                      >
-                        {scoreDelta >= 0 ? `+${scoreDelta}%` : `${scoreDelta}%`} vs poprz.
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 pt-3 border-t border-[#EFECE6]">
-                    <div className="w-full h-1.5 bg-[#F2F0EB] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
+                        className={
                           score >= 80
-                            ? "bg-[#059669]"
+                            ? "pill-healthy"
                             : score >= 50
-                            ? "bg-[#D97706]"
-                            : "bg-[#DC2626]"
-                        }`}
-                        style={{ width: `${score}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#5C6168]">
-                      <span>15 reguł deterministycznych</span>
+                            ? "pill-warning"
+                            : "pill-urgent"
+                        }
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            score >= 80
+                              ? "bg-[#10B981]"
+                              : score >= 50
+                              ? "bg-[#D97706]"
+                              : "bg-[#E11D48]"
+                          }`}
+                        />
+                        {score >= 80
+                          ? "Sklep w dobrej kondycji"
+                          : score >= 50
+                          ? "Wymaga kilku poprawek"
+                          : "Pilne sprawy do poprawy"}
+                      </span>
                       {latestScan && (
-                        <span className="font-mono">
+                        <span className="text-xs text-[#71717A]">
+                          Ostatnie sprawdzenie:{" "}
                           {new Date(
                             latestScan.completedAt || latestScan.startedAt
-                          ).toLocaleDateString("pl-PL")}
+                          ).toLocaleString("pl-PL")}
                         </span>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                {/* KPI 2: Critical Blockers */}
-                <div className="pci-card p-5 flex flex-col justify-between">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="pci-eyebrow text-[#B91C1C]">Blokady Operacyjne</span>
-                      <h2 className="text-xs font-semibold text-[#111315] mt-0.5">
-                        Błędy Krytyczne (P1)
+                    <div className="space-y-2">
+                      <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#18181B]">
+                        {latestScan ? healthHeadline : "Sklep gotowy do pierwszego sprawdzenia"}
                       </h2>
-                    </div>
-                    <div className="w-7 h-7 rounded-md bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center text-[#B91C1C]">
-                      <AlertOctagon className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-
-                  <div className="my-4 flex items-baseline justify-between">
-                    <div className="font-mono text-4xl font-bold tracking-tight text-[#111315] tabular-nums">
-                      {latestScan?.criticalCount ?? 0}
-                    </div>
-                    <span className="text-[11px] font-mono text-[#B91C1C] font-semibold">
-                      {critPct}% wszystkich wad
-                    </span>
-                  </div>
-
-                  <div className="pt-3 border-t border-[#EFECE6] flex items-center justify-between text-[11px] text-[#5C6168]">
-                    <span>Duplikaty SKU, stany &lt; 0, brak listu</span>
-                    <button
-                      onClick={() => setIssueFilter("CRITICAL")}
-                      className="font-semibold text-[#0052FF] hover:underline cursor-pointer"
-                    >
-                      Filtruj P1 →
-                    </button>
-                  </div>
-                </div>
-
-                {/* KPI 3: Operational Warnings */}
-                <div className="pci-card p-5 flex flex-col justify-between">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="pci-eyebrow text-[#B45309]">Ryzyko Marży i SLA</span>
-                      <h2 className="text-xs font-semibold text-[#111315] mt-0.5">
-                        Ostrzeżenia (P2) i Info
-                      </h2>
-                    </div>
-                    <div className="w-7 h-7 rounded-md bg-[#FFFBEB] border border-[#FDE68A] flex items-center justify-center text-[#B45309]">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-
-                  <div className="my-4 flex items-baseline justify-between">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-mono text-4xl font-bold tracking-tight text-[#111315] tabular-nums">
-                        {latestScan?.warningCount ?? 0}
-                      </span>
-                      <span className="text-xs font-mono text-[#5C6168]">
-                        + {latestScan?.infoCount ?? 0} info
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-mono text-[#B45309] font-semibold">
-                      {warnPct}% udziału
-                    </span>
-                  </div>
-
-                  <div className="pt-3 border-t border-[#EFECE6] flex items-center justify-between text-[11px] text-[#5C6168]">
-                    <span>Braki EAN, waga 0 kg, rozjazd WMS</span>
-                    <button
-                      onClick={() => setIssueFilter("WARNING")}
-                      className="font-semibold text-[#0052FF] hover:underline cursor-pointer"
-                    >
-                      Filtruj P2 →
-                    </button>
-                  </div>
-                </div>
-
-                {/* KPI 4: Catalog & Order Throughput */}
-                <div className="pci-card p-5 flex flex-col justify-between">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="pci-eyebrow">Wolumen Audytu</span>
-                      <h2 className="text-xs font-semibold text-[#111315] mt-0.5">
-                        Przeskanowane Obiekty
-                      </h2>
-                    </div>
-                    <div className="w-7 h-7 rounded-md bg-[#EDF2FF] border border-[#C7D7FE] flex items-center justify-center text-[#0052FF]">
-                      <Layers className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-
-                  <div className="my-4 grid grid-cols-2 gap-3">
-                    <div className="p-2 rounded-md bg-[#FAF9F6] border border-[#EFECE6]">
-                      <div className="text-[10px] font-mono uppercase text-[#5C6168]">
-                        Produkty SKU
-                      </div>
-                      <div className="font-mono text-xl font-bold text-[#111315] mt-0.5 tabular-nums">
-                        {latestScan?.productsScanned ?? 0}
-                      </div>
-                    </div>
-                    <div className="p-2 rounded-md bg-[#FAF9F6] border border-[#EFECE6]">
-                      <div className="text-[10px] font-mono uppercase text-[#5C6168]">
-                        Zamówienia
-                      </div>
-                      <div className="font-mono text-xl font-bold text-[#111315] mt-0.5 tabular-nums">
-                        {latestScan?.ordersScanned ?? 0}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-[#EFECE6] flex items-center justify-between text-[11px]">
-                    {latestScan ? (
-                      <>
-                        <a
-                          href={`/api/scans/${latestScan.id}/pdf`}
-                          download
-                          className="font-semibold text-[#111315] hover:text-[#0052FF] inline-flex items-center gap-1 transition"
-                        >
-                          <Download className="w-3 h-3 text-[#0052FF]" />
-                          <span>Eksportuj Raport PDF</span>
-                        </a>
-                        <Link
-                          href={`/scans/${latestScan.id}`}
-                          className="font-semibold text-[#0052FF] hover:underline"
-                        >
-                          Pełny raport →
-                        </Link>
-                      </>
-                    ) : (
-                      <span className="text-[#868C94]">Brak wykonanego skanu</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ROW 2: ANALYTICAL CHARTS & DOMAIN TELEMETRY (7:5 SPLIT) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                {/* Left 7 Cols: Analytical Trajectory & Severity Distribution Chart */}
-                <div className="lg:col-span-7 pci-card p-5 flex flex-col justify-between space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#EFECE6] pb-4">
-                    <div>
-                      <span className="pci-eyebrow">Telemetria Jakości Danych</span>
-                      <h2 className="text-sm font-semibold text-[#111315] mt-0.5">
-                        Trajektoria Health Score i Struktura Nieprawidłowości
-                      </h2>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] font-mono">
-                      <span className="inline-flex items-center gap-1.5 text-[#373B40]">
-                        <span className="w-2 h-2 rounded-xs bg-[#0052FF]" />
-                        Health Score (%)
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 text-[#5C6168]">
-                        <span className="w-2 h-2 rounded-xs bg-[#DC2626]" />
-                        Krytyczne
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* SVG Analytical Bar/Line Hybrid Visualization */}
-                  <div className="pt-1">
-                    {chartPoints.length > 0 ? (
-                      <div className="space-y-4">
-                        <div className="h-44 w-full bg-[#FAF9F6] border border-[#EFECE6] rounded-lg p-4 flex items-end justify-between gap-3 relative">
-                          {/* Horizontal Reference Grid Lines */}
-                          <div className="absolute inset-x-4 top-4 border-b border-dashed border-[#E5E3DC] flex justify-between text-[9px] font-mono text-[#868C94] pb-0.5">
-                            <span>100% (Wzorzec)</span>
-                            <span>SLA Target: 85%</span>
-                          </div>
-                          <div className="absolute inset-x-4 top-1/2 border-b border-dashed border-[#E5E3DC] text-[9px] font-mono text-[#868C94]" />
-
-                          {chartPoints.map((pt, idx) => {
-                            const barHeight = Math.max(14, Math.min(100, pt.healthScore));
-                            const isLatest = idx === chartPoints.length - 1;
-                            return (
-                              <div
-                                key={pt.id}
-                                className="flex-1 flex flex-col items-center justify-end h-full z-10 group"
-                              >
-                                <div className="text-[10px] font-mono font-bold text-[#111315] mb-1">
-                                  {pt.healthScore}%
-                                </div>
-                                <div className="w-full max-w-[44px] bg-[#EAE7E0] rounded-t h-28 flex items-end overflow-hidden p-0.5">
-                                  <div
-                                    className={`w-full rounded-t transition-all duration-300 ${
-                                      isLatest
-                                        ? "bg-[#0052FF]"
-                                        : pt.healthScore >= 80
-                                        ? "bg-[#059669]/80"
-                                        : "bg-[#373B40]/70"
-                                    }`}
-                                    style={{ height: `${barHeight}%` }}
-                                  />
-                                </div>
-                                <div className="mt-2 text-[10px] font-mono text-[#5C6168] truncate max-w-[72px]">
-                                  {new Date(pt.completedAt || pt.startedAt).toLocaleDateString(
-                                    "pl-PL",
-                                    { day: "2-digit", month: "2-digit" }
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Stacked Severity Distribution Bar */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-[#373B40]">
-                              Rozkład wykrytych nieprawidłowości wg klasy ryzyka
-                            </span>
-                            <span className="font-mono text-xs text-[#5C6168]">
-                              Łącznie: <strong className="text-[#111315]">{totalIssues}</strong>
-                            </span>
-                          </div>
-                          <div className="w-full h-2.5 rounded-full bg-[#F2F0EB] overflow-hidden flex gap-0.5 p-0.5 border border-[#E5E3DC]">
-                            {critPct > 0 && (
-                              <div
-                                className="h-full bg-[#DC2626] rounded-l-full"
-                                style={{ width: `${critPct}%` }}
-                                title={`Krytyczne: ${critPct}%`}
-                              />
+                      <p className="text-sm text-[#52525B] leading-relaxed max-w-2xl">
+                        {latestScan ? (
+                          <>
+                            Przejrzeliśmy{" "}
+                            <strong className="font-semibold text-[#18181B]">
+                              {latestScan.productsScanned} produktów
+                            </strong>{" "}
+                            oraz{" "}
+                            <strong className="font-semibold text-[#18181B]">
+                              {latestScan.ordersScanned} zamówień
+                            </strong>
+                            .{" "}
+                            {latestScan.criticalCount > 0 ? (
+                              <>
+                                Znaleźliśmy{" "}
+                                <strong className="text-[#BE123C]">
+                                  {latestScan.criticalCount} pilnych spraw
+                                </strong>
+                                , które mogą blokować sprzedaż lub wysyłkę, oraz{" "}
+                                <strong className="text-[#B45309]">
+                                  {latestScan.warningCount} rzeczy do poprawy
+                                </strong>
+                                .
+                              </>
+                            ) : (
+                              "Nie wykryliśmy żadnych pilnych błędów blokujących sprzedaż."
                             )}
-                            {warnPct > 0 && (
-                              <div
-                                className="h-full bg-[#D97706]"
-                                style={{ width: `${warnPct}%` }}
-                                title={`Ostrzeżenia: ${warnPct}%`}
-                              />
-                            )}
-                            {infoPct > 0 && (
-                              <div
-                                className="h-full bg-[#0052FF] rounded-r-full"
-                                style={{ width: `${infoPct}%` }}
-                                title={`Informacyjne: ${infoPct}%`}
-                              />
-                            )}
-                          </div>
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-[#5C6168]">
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-[#DC2626]" />
-                              Krytyczne: {latestScan?.criticalCount ?? 0} ({critPct}%)
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-[#D97706]" />
-                              Ostrzeżenia: {latestScan?.warningCount ?? 0} ({warnPct}%)
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-[#0052FF]" />
-                              Informacyjne: {latestScan?.infoCount ?? 0} ({infoPct}%)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-48 flex items-center justify-center text-xs text-[#868C94] font-mono">
-                        Uruchom pierwszy skan, aby wygenerować wykres trajektorii.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right 5 Cols: Domain Health Matrix */}
-                <div className="lg:col-span-5 pci-card p-5 flex flex-col justify-between space-y-4">
-                  <div className="border-b border-[#EFECE6] pb-4 flex items-center justify-between">
-                    <div>
-                      <span className="pci-eyebrow">Macierz Domenowa</span>
-                      <h2 className="text-sm font-semibold text-[#111315] mt-0.5">
-                        Kondycja Obszarów Operacyjnych
-                      </h2>
+                          </>
+                        ) : (
+                          "Kliknij przycisk poniżej, aby sprawdzić produkty, magazyn i zamówienia w połączonym sklepie."
+                        )}
+                      </p>
                     </div>
-                    <span className="text-[11px] font-mono text-[#5C6168]">4 domeny</span>
-                  </div>
 
-                  {latestScan?.summary && (latestScan.summary as any[]).length > 0 ? (
-                    <div className="space-y-3 flex-1 flex flex-col justify-center">
-                      {(latestScan.summary as any[]).map((cat, idx) => {
-                        const isHealthy = cat.score >= 80;
-                        const isWarn = cat.score >= 50 && cat.score < 80;
-                        return (
-                          <div
-                            key={idx}
-                            className="p-3 rounded-lg bg-[#FAF9F6] border border-[#EFECE6] space-y-2"
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <button
+                        onClick={handleRunQuickScan}
+                        disabled={scanning}
+                        className="btn-studio-primary cursor-pointer"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${scanning ? "animate-spin" : ""}`} />
+                        <span>{scanning ? "Sprawdzanie..." : "Sprawdź sklep ponownie"}</span>
+                      </button>
+
+                      {latestScan && (
+                        <>
+                          <a
+                            href={`/api/scans/${latestScan.id}/pdf`}
+                            download
+                            className="btn-studio-secondary"
                           >
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-semibold text-[#111315]">{cat.title}</span>
-                              <div className="flex items-center gap-2">
-                                {cat.criticalCount > 0 && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]">
-                                    {cat.criticalCount} kryt.
-                                  </span>
-                                )}
-                                <span className="font-mono font-bold text-[#111315] tabular-nums">
-                                  {cat.score}%
-                                </span>
-                              </div>
+                            <Download className="w-3.5 h-3.5 text-[#0F766E]" />
+                            <span>Pobierz raport PDF</span>
+                          </a>
+                          <Link
+                            href={`/scans/${latestScan.id}`}
+                            className="text-xs font-semibold text-[#0F766E] hover:text-[#115E59] px-2 py-1.5 inline-flex items-center gap-1 transition"
+                          >
+                            <span>Otwórz pełny raport</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Visual Score Meter */}
+                  <div className="lg:col-span-4 p-5 rounded-2xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#52525B]">
+                        Ogólna kondycja sklepu
+                      </span>
+                      {scoreDelta !== null && (
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                            scoreDelta >= 0
+                              ? "bg-[#ECFDF5] text-[#047857]"
+                              : "bg-[#FFF1F2] text-[#BE123C]"
+                          }`}
+                        >
+                          {scoreDelta >= 0 ? `+${scoreDelta}` : scoreDelta} pkt
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-5xl font-bold tracking-tight text-[#18181B] tabular-nums">
+                        {latestScan ? score : "—"}
+                      </span>
+                      <span className="text-lg font-medium text-[#71717A]">/ 100</span>
+                    </div>
+
+                    {/* 3-Segment Health Breakdown Bar */}
+                    {latestScan && (
+                      <div className="space-y-2 pt-2 border-t border-[#E8E4DC]">
+                        <div className="w-full h-2.5 rounded-full bg-[#EAE6DF] overflow-hidden flex gap-0.5">
+                          {critPct > 0 && (
+                            <div
+                              className="h-full bg-[#E11D48]"
+                              style={{ width: `${critPct}%` }}
+                              title={`Pilne: ${latestScan.criticalCount}`}
+                            />
+                          )}
+                          {warnPct > 0 && (
+                            <div
+                              className="h-full bg-[#D97706]"
+                              style={{ width: `${warnPct}%` }}
+                              title={`Warto poprawić: ${latestScan.warningCount}`}
+                            />
+                          )}
+                          {infoPct > 0 && (
+                            <div
+                              className="h-full bg-[#0F766E]"
+                              style={{ width: `${infoPct}%` }}
+                              title={`Wskazówki: ${latestScan.infoCount}`}
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-[#52525B]">
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
+                            Pilne: <strong className="text-[#18181B]">{latestScan.criticalCount}</strong>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-[#D97706]" />
+                            Do poprawy: <strong className="text-[#18181B]">{latestScan.warningCount}</strong>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-[#0F766E]" />
+                            Wskazówki: <strong className="text-[#18181B]">{latestScan.infoCount}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* 2. 3 BUSINESS AREA CARDS — Answers: "What needs my attention?" */}
+              {latestScan && (
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-[#18181B]">
+                      Stan trzech głównych obszarów sklepu
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {businessAreas.map((area) => {
+                      const Icon = area.icon;
+                      const statusPill =
+                        area.urgentCount > 0
+                          ? { cls: "pill-urgent", label: "Wymaga działania" }
+                          : area.count > 0
+                          ? { cls: "pill-warning", label: "Warto sprawdzić" }
+                          : { cls: "pill-healthy", label: "Wszystko dobrze" };
+
+                      return (
+                        <div key={area.title} className="studio-card p-5 space-y-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="w-9 h-9 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] flex items-center justify-center text-[#0F766E]">
+                              <Icon className="w-4 h-4" />
                             </div>
-                            <div className="w-full bg-[#EAE7E0] h-1.5 rounded-full overflow-hidden">
+                            <span className={statusPill.cls}>{statusPill.label}</span>
+                          </div>
+
+                          <div>
+                            <h3 className="text-sm font-semibold text-[#18181B]">{area.title}</h3>
+                            <p className="text-xs text-[#71717A] mt-0.5 leading-relaxed">
+                              {area.subtitle}
+                            </p>
+                          </div>
+
+                          <div className="space-y-2 pt-2 border-t border-[#F1EFEA]">
+                            <div className="w-full h-1.5 bg-[#F3F0EA] rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${
-                                  isHealthy
-                                    ? "bg-[#059669]"
-                                    : isWarn
+                                  area.urgentCount > 0
+                                    ? "bg-[#E11D48]"
+                                    : area.count > 0
                                     ? "bg-[#D97706]"
-                                    : "bg-[#DC2626]"
+                                    : "bg-[#10B981]"
                                 }`}
-                                style={{ width: `${cat.score}%` }}
+                                style={{ width: `${area.score}%` }}
                               />
                             </div>
-                            <div className="flex items-center justify-between text-[11px] text-[#5C6168]">
-                              <span>Wykryte nieprawidłowości: {cat.totalIssues}</span>
-                              <span className="font-mono text-[10px]">
-                                {cat.warningCount > 0 ? `${cat.warningCount} ostrz.` : "Brak ostrzeżeń"}
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-[#52525B]">
+                                {area.count === 0
+                                  ? "Brak wykrytych problemów"
+                                  : area.count === 1
+                                  ? "1 sprawa do przejrzenia"
+                                  : `${area.count} spraw do przejrzenia`}
+                              </span>
+                              <span className="font-semibold text-[#18181B] tabular-nums">
+                                {area.score}%
                               </span>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-xs text-[#868C94]">
-                      Brak danych domenowych dla wybranego sklepu.
-                    </div>
-                  )}
-                </div>
-              </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
 
-              {/* ROW 3: PRIORITY ISSUE TRIAGE TABLE (DIRECTLY ACTIONABLE ON DASHBOARD) */}
+              {/* 3. ACTIONABLE RECOMMENDATIONS — Answers: "What should I do next?" */}
               {latestScan && (
-                <div className="pci-card overflow-hidden">
-                  <div className="p-5 border-b border-[#E5E3DC] flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#FFFFFF]">
+                <section className="space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="pci-eyebrow">Rejestr Diagnostyczny</span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#F4F2ED] text-[#373B40] border border-[#E5E3DC]">
-                          {filteredIssues.length} z {issues.length} pozycji
-                        </span>
-                      </div>
-                      <h2 className="text-sm font-semibold text-[#111315] mt-0.5">
-                        Wykryte Nieprawidłowości i Rekomendacje Naprawcze
+                      <h2 className="text-base font-bold text-[#18181B]">
+                        Co warto teraz naprawić w sklepie
                       </h2>
+                      <p className="text-xs text-[#71717A]">
+                        Najważniejsze sprawy ułożone od tych, które najbardziej wpływają na sprzedaż i wysyłkę.
+                      </p>
                     </div>
 
-                    {/* Filter Pills & Search */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="inline-flex p-0.5 rounded-md bg-[#F4F2ED] border border-[#E5E3DC] text-xs">
+                      <div className="inline-flex p-1 rounded-xl bg-[#F3F0EA] border border-[#E8E4DC] text-xs">
                         {(
                           [
                             { key: "ALL", label: "Wszystkie" },
-                            { key: "CRITICAL", label: `Krytyczne (${latestScan.criticalCount})` },
-                            { key: "WARNING", label: `Ostrzeżenia (${latestScan.warningCount})` },
-                            { key: "INFO", label: "Info" },
+                            { key: "CRITICAL", label: `Pilne (${latestScan.criticalCount})` },
+                            { key: "WARNING", label: `Do poprawy (${latestScan.warningCount})` },
+                            { key: "INFO", label: "Wskazówki" },
                           ] as const
                         ).map((tab) => (
                           <button
                             key={tab.key}
                             onClick={() => setIssueFilter(tab.key)}
-                            className={`px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                               issueFilter === tab.key
-                                ? "bg-[#FFFFFF] text-[#111315] font-semibold shadow-xs"
-                                : "text-[#5C6168] hover:text-[#111315]"
+                                ? "bg-white text-[#18181B] font-semibold shadow-xs"
+                                : "text-[#52525B] hover:text-[#18181B]"
                             }`}
                           >
                             {tab.label}
@@ -781,225 +683,265 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-[#868C94] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <Search className="w-3.5 h-3.5 text-[#A1A1AA] absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Szukaj SKU, ID, reguły..."
-                          className="pl-8 pr-3 py-1.5 rounded-md bg-[#FAF9F6] border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] focus:bg-[#FFFFFF] w-48 sm:w-56"
+                          placeholder="Szukaj produktu lub zamówienia..."
+                          className="pl-8 pr-3 py-2 rounded-xl bg-white border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] w-52 sm:w-60"
                         />
                       </div>
                     </div>
                   </div>
 
                   {filteredIssues.length === 0 ? (
-                    <div className="p-10 text-center text-xs text-[#5C6168]">
-                      Brak nieprawidłowości spełniających wybrane kryteria filtrowania.
+                    <div className="studio-card p-10 text-center space-y-2">
+                      <CheckCircle2 className="w-8 h-8 text-[#10B981] mx-auto" />
+                      <p className="text-sm font-semibold text-[#18181B]">
+                        Brak spraw pasujących do wybranych filtrów
+                      </p>
+                      <p className="text-xs text-[#71717A]">
+                        Zmień filtr powyżej lub uruchom kolejne sprawdzenie sklepu.
+                      </p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-[#FAF9F6] border-b border-[#E5E3DC] text-[10px] font-mono uppercase tracking-wider text-[#5C6168]">
-                            <th className="py-2.5 px-4">Priorytet / Kod</th>
-                            <th className="py-2.5 px-4">Nieprawidłowość i Wpływ Biznesowy</th>
-                            <th className="py-2.5 px-4">Obiekt (SKU / Zamówienie)</th>
-                            <th className="py-2.5 px-4">Naprawa</th>
-                            <th className="py-2.5 px-4 text-right">Szac. Czas</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#EFECE6] text-xs">
-                          {filteredIssues.slice(0, 8).map((issue) => (
-                            <tr
-                              key={issue.id}
-                              onClick={() => router.push(`/scans/${latestScan.id}`)}
-                              className="hover:bg-[#FAF9F6] transition cursor-pointer group"
-                            >
-                              <td className="py-3 px-4 align-top whitespace-nowrap">
-                                <div className="flex flex-col items-start gap-1">
-                                  <span
-                                    className={
-                                      issue.severity === "CRITICAL"
-                                        ? "badge-critical"
-                                        : issue.severity === "WARNING"
-                                        ? "badge-warning"
-                                        : "badge-neutral"
-                                    }
-                                  >
-                                    {issue.severity === "CRITICAL"
-                                      ? "KRYTYCZNY"
-                                      : issue.severity === "WARNING"
-                                      ? "OSTRZEŻENIE"
-                                      : "INFO"}
-                                  </span>
-                                  <span className="text-[10px] font-mono text-[#868C94]">
-                                    {issue.code}
-                                  </span>
-                                </div>
-                              </td>
+                    <div className="space-y-3">
+                      {filteredIssues.slice(0, 5).map((issue, idx) => {
+                        const isUrgent = issue.severity === "CRITICAL";
+                        const isWarning = issue.severity === "WARNING";
 
-                              <td className="py-3 px-4 align-top max-w-md">
-                                <div className="font-semibold text-[#111315] group-hover:text-[#0052FF] transition">
-                                  {issue.title}
-                                </div>
-                                <p className="text-[11px] text-[#5C6168] mt-0.5 line-clamp-2">
-                                  {issue.businessImpact || issue.description}
-                                </p>
-                              </td>
+                        return (
+                          <div
+                            key={issue.id || idx}
+                            className="studio-card-hover p-5 sm:p-6 space-y-4"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={
+                                    isUrgent
+                                      ? "pill-urgent"
+                                      : isWarning
+                                      ? "pill-warning"
+                                      : "pill-neutral"
+                                  }
+                                >
+                                  {isUrgent
+                                    ? "Pilne — blokuje sprzedaż"
+                                    : isWarning
+                                    ? "Warto poprawić"
+                                    : "Wskazówka"}
+                                </span>
+                                <span className="pill-neutral">
+                                  {getFriendlyCategoryName(issue.category)}
+                                </span>
+                              </div>
 
-                              <td className="py-3 px-4 align-top whitespace-nowrap">
-                                <div className="font-medium text-[#111315] text-xs">
-                                  {issue.entityName || "Obiekt systemowy"}
-                                </div>
-                                <div className="text-[11px] font-mono text-[#5C6168]">
-                                  ID: {issue.entityId}
-                                </div>
-                              </td>
-
-                              <td className="py-3 px-4 align-top whitespace-nowrap">
-                                {issue.canAutoFix ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#EDF2FF] text-[#0052FF] border border-[#C7D7FE]">
-                                    <Wrench className="w-2.5 h-2.5" />
-                                    Auto-Fix API
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-[#5C6168] bg-[#F4F2ED] border border-[#E5E3DC]">
-                                    Weryfikacja ręczna
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-[#71717A]">
+                                {(issue.affectedIdentifier || issue.entityName) && (
+                                  <span className="font-mono text-[11px] bg-[#FAF8F5] border border-[#E8E4DC] text-[#18181B] px-2.5 py-0.5 rounded-full">
+                                    {issue.entityName || issue.affectedIdentifier}
                                   </span>
                                 )}
-                              </td>
+                                {issue.estimatedFixTime && (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#52525B]">
+                                    <Clock className="w-3 h-3 text-[#0F766E]" />
+                                    Zajmie ok. {issue.estimatedFixTime}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
 
-                              <td className="py-3 px-4 align-top text-right whitespace-nowrap font-mono text-xs text-[#373B40]">
-                                {issue.estimatedFixTime || "~5 min"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                            <div>
+                              <h3 className="text-sm sm:text-base font-semibold text-[#18181B]">
+                                {issue.title}
+                              </h3>
+                              {issue.description && (
+                                <p className="text-xs text-[#52525B] mt-1 leading-relaxed">
+                                  {issue.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                              <div className="p-3.5 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] space-y-1">
+                                <div className="text-[11px] font-semibold text-[#B45309] flex items-center gap-1.5">
+                                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                  <span>Co to oznacza dla sprzedaży</span>
+                                </div>
+                                <p className="text-xs text-[#3F3F46] leading-relaxed">
+                                  {issue.businessImpact ||
+                                    "Może obniżać widoczność ofert lub wydłużać obsługę zamówień."}
+                                </p>
+                              </div>
+
+                              <div className="p-3.5 rounded-xl bg-[#F0FDFA] border border-[#CCFBF1] space-y-1">
+                                <div className="text-[11px] font-semibold text-[#0F766E] flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                  <span>Co należy zrobić</span>
+                                </div>
+                                <p className="text-xs text-[#134E4A] leading-relaxed">
+                                  {issue.suggestedFix ||
+                                    "Uzupełnij brakujące dane w karcie produktu lub zamówienia w Base.com."}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-xs text-[#71717A]">
+                          Pokazujemy {Math.min(5, filteredIssues.length)} z {filteredIssues.length} spraw
+                        </span>
+                        <Link
+                          href={`/scans/${latestScan.id}`}
+                          className="btn-studio-secondary"
+                        >
+                          <span>Zobacz wszystkie sprawy ({issues.length})</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
                     </div>
                   )}
-
-                  <div className="px-5 py-3 bg-[#FAF9F6] border-t border-[#E5E3DC] flex items-center justify-between text-xs">
-                    <span className="text-[#5C6168]">
-                      Wyświetlono {Math.min(8, filteredIssues.length)} z {filteredIssues.length}{" "}
-                      wykrytych pozycji
-                    </span>
-                    <Link
-                      href={`/scans/${latestScan.id}`}
-                      className="font-semibold text-[#0052FF] hover:text-[#0040CC] inline-flex items-center gap-1"
-                    >
-                      <span>Otwórz pełny arkusz naprawczy ({issues.length})</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
+                </section>
               )}
 
-              {/* ROW 4: HISTORICAL AUDIT LOG TABLE */}
-              <div className="pci-card overflow-hidden">
-                <div className="p-5 border-b border-[#E5E3DC] flex items-center justify-between">
-                  <div>
-                    <span className="pci-eyebrow">Archiwum Operacyjne</span>
-                    <h2 className="text-sm font-semibold text-[#111315] mt-0.5">
-                      Ostatnie Audyty Diagnostyczne
-                    </h2>
+              {/* 4. SECONDARY SECTION: STORE HEALTH HISTORY & TREND */}
+              <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-2">
+                {/* Visual Health Trend */}
+                <div className="lg:col-span-6 studio-card p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold text-[#18181B]">
+                        Jak zmieniała się kondycja sklepu
+                      </h2>
+                      <p className="text-xs text-[#71717A]">
+                        Wyniki ostatnich sprawdzeń (im wyższy słupek, tym zdrowszy sklep)
+                      </p>
+                    </div>
                   </div>
-                  <Link
-                    href="/scans"
-                    className="btn-secondary-surface text-xs"
-                  >
-                    <span>Pełny rejestr ({scans.length})</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
+
+                  {chartPoints.length > 0 ? (
+                    <div className="h-44 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] p-4 flex items-end justify-between gap-3">
+                      {chartPoints.map((pt, idx) => {
+                        const barHeight = Math.max(18, Math.min(100, pt.healthScore));
+                        const isLatest = idx === chartPoints.length - 1;
+                        return (
+                          <div
+                            key={pt.id}
+                            className="flex-1 flex flex-col items-center justify-end h-full"
+                          >
+                            <span className="text-xs font-semibold text-[#18181B] mb-1.5 tabular-nums">
+                              {pt.healthScore}%
+                            </span>
+                            <div className="w-full max-w-[44px] h-24 bg-[#EAE6DF] rounded-xl flex items-end overflow-hidden p-0.5">
+                              <div
+                                className={`w-full rounded-lg transition-all duration-300 ${
+                                  isLatest
+                                    ? "bg-[#0F766E]"
+                                    : pt.healthScore >= 80
+                                    ? "bg-[#10B981]/80"
+                                    : "bg-[#71717A]/60"
+                                }`}
+                                style={{ height: `${barHeight}%` }}
+                              />
+                            </div>
+                            <span className="mt-2 text-[11px] text-[#71717A] tabular-nums">
+                              {new Date(pt.completedAt || pt.startedAt).toLocaleDateString(
+                                "pl-PL",
+                                { day: "2-digit", month: "2-digit" }
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="h-44 rounded-xl bg-[#FAF8F5] border border-[#E8E4DC] flex items-center justify-center text-xs text-[#71717A]">
+                      Wykres pojawi się po wykonaniu pierwszego sprawdzenia sklepu.
+                    </div>
+                  )}
                 </div>
 
-                {scans.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-[#868C94]">
-                    Brak zapisanych audytów. Użyj przycisku &bdquo;Uruchom Audyt&rdquo; powyżej.
+                {/* Recent Checks List */}
+                <div className="lg:col-span-6 studio-card p-6 flex flex-col justify-between space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold text-[#18181B]">
+                        Ostatnie raporty
+                      </h2>
+                      <p className="text-xs text-[#71717A]">
+                        Poprzednie sprawdzenia zapisane na Twoim koncie
+                      </p>
+                    </div>
+                    <Link
+                      href="/scans"
+                      className="text-xs font-semibold text-[#0F766E] hover:underline"
+                    >
+                      Wszystkie ({scans.length})
+                    </Link>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-[#FAF9F6] border-b border-[#E5E3DC] text-[10px] font-mono uppercase tracking-wider text-[#5C6168]">
-                          <th className="py-2.5 px-4">Health Score</th>
-                          <th className="py-2.5 px-4">Źródło / Sklep Base.com</th>
-                          <th className="py-2.5 px-4">Data Wykonania</th>
-                          <th className="py-2.5 px-4">Rozkład Usterek</th>
-                          <th className="py-2.5 px-4 text-right">Eksport / Szczegóły</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#EFECE6] text-xs">
-                        {scans.slice(0, 5).map((scan) => (
-                          <tr key={scan.id} className="hover:bg-[#FAF9F6] transition">
-                            <td className="py-3 px-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs border ${
-                                  scan.healthScore >= 80
-                                    ? "bg-[#ECFDF5] text-[#046C4E] border-[#A7F3D0]"
-                                    : scan.healthScore >= 50
-                                    ? "bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]"
-                                    : "bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]"
-                                }`}
-                              >
-                                {scan.healthScore}%
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 font-semibold text-[#111315]">
-                              <div className="flex items-center gap-2">
-                                <span>{scan.shopConnection?.name || "Sklep Base.com"}</span>
-                                {(scan.id?.includes("demo") ||
-                                  scan.shopConnection?.name?.toLowerCase().includes("demo")) && (
-                                  <span className="badge-demo text-[10px]">DEMO</span>
-                                )}
+
+                  {scans.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-[#71717A]">
+                      Brak wcześniejszych raportów.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[#F1EFEA]">
+                      {scans.slice(0, 4).map((scan) => (
+                        <div
+                          key={scan.id}
+                          className="py-3 flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-bold tabular-nums shrink-0 ${
+                                scan.healthScore >= 80
+                                  ? "bg-[#ECFDF5] text-[#047857]"
+                                  : scan.healthScore >= 50
+                                  ? "bg-[#FFFBEB] text-[#B45309]"
+                                  : "bg-[#FFF1F2] text-[#BE123C]"
+                              }`}
+                            >
+                              {scan.healthScore}%
+                            </span>
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-[#18181B] truncate">
+                                {scan.shopConnection?.name || "Sklep Base.com"}
                               </div>
-                            </td>
-                            <td className="py-3 px-4 font-mono text-[#5C6168] whitespace-nowrap">
-                              {new Date(scan.completedAt || scan.startedAt).toLocaleString("pl-PL")}
-                            </td>
-                            <td className="py-3 px-4 whitespace-nowrap">
-                              <div className="flex items-center gap-2 font-mono text-[11px]">
-                                <span className="text-[#B91C1C] font-semibold">
-                                  {scan.criticalCount ?? 0} kryt.
-                                </span>
-                                <span className="text-[#CFCBC2]">•</span>
-                                <span className="text-[#B45309] font-semibold">
-                                  {scan.warningCount ?? 0} ostrz.
-                                </span>
-                                <span className="text-[#CFCBC2]">•</span>
-                                <span className="text-[#5C6168]">
-                                  {scan.issuesCount} łącznie
-                                </span>
+                              <div className="text-[11px] text-[#71717A]">
+                                {new Date(
+                                  scan.completedAt || scan.startedAt
+                                ).toLocaleDateString("pl-PL")}{" "}
+                                • {scan.issuesCount} spraw
                               </div>
-                            </td>
-                            <td className="py-3 px-4 text-right whitespace-nowrap">
-                              <div className="inline-flex items-center gap-2">
-                                <a
-                                  href={`/api/scans/${scan.id}/pdf`}
-                                  download
-                                  className="btn-secondary-surface py-1 px-2.5 text-[11px]"
-                                  title="Pobierz raport PDF"
-                                >
-                                  <Download className="w-3 h-3 text-[#5C6168]" />
-                                  <span>PDF</span>
-                                </a>
-                                <Link
-                                  href={`/scans/${scan.id}`}
-                                  className="btn-primary-ink py-1 px-2.5 text-[11px]"
-                                >
-                                  <span>Inspekcja</span>
-                                  <ArrowRight className="w-3 h-3" />
-                                </Link>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <a
+                              href={`/api/scans/${scan.id}/pdf`}
+                              download
+                              className="p-2 rounded-lg text-[#71717A] hover:text-[#18181B] hover:bg-[#FAF8F5] transition"
+                              title="Pobierz PDF"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                            <Link
+                              href={`/scans/${scan.id}`}
+                              className="btn-studio-secondary py-1.5 px-3 text-[11px]"
+                            >
+                              Otwórz
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
             </>
           )}
         </div>

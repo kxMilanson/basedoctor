@@ -16,22 +16,22 @@ export function Footer() {
   }
 
   return (
-    <footer className="border-t border-[#E5E3DC] bg-[#FFFFFF] py-6 text-xs text-[#5C6168]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-[#111315]">BaseDoctor</span>
-          <span className="text-[#CFCBC2]">•</span>
-          <span>© {new Date().getFullYear()} Wszelkie prawa zastrzeżone</span>
+    <footer className="border-t border-[#E8E4DC] bg-[#F3F0EA]/60 py-8 text-xs text-[#71717A]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-2.5">
+          <span className="font-bold text-[#18181B]">BaseDoctor</span>
+          <span className="text-[#D6D1C7]">•</span>
+          <span>© {new Date().getFullYear()} Diagnostyka dla sklepów e-commerce</span>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-[#868C94] text-[11px] font-mono">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-[#71717A] text-xs">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
-            Architektura Read-Only
+            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+            <span>Tryb bezpieczny (tylko odczyt)</span>
           </span>
-          <span>•</span>
-          <span>Oficjalne API Base.com</span>
-          <span>•</span>
-          <span>Szyfrowanie AES-256-GCM</span>
+          <span className="text-[#D6D1C7]">•</span>
+          <span>Bez zmian w Twoim sklepie</span>
+          <span className="text-[#D6D1C7]">•</span>
+          <span>Przejrzyste raporty PDF</span>
         </div>
       </div>
     </footer>

@@ -10,9 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BaseDoctor | Audyt i Diagnostyka Sklepów Base.com",
+  title: "BaseDoctor | Sprawdź kondycję swojego sklepu Base.com",
   description:
-    "Bezpieczna platforma diagnostyczna dla e-commerce integrująca się z Base.com (BaseLinker). Wykrywa błędy SKU/EAN, anomalie magazynowe i opóźnienia zamówień w trybie tylko do odczytu.",
+    "Przejrzysta diagnostyka dla właścicieli sklepów internetowych i sprzedawców Allegro. Wykryj błędy w produktach, magazynie i wysyłce bez ryzyka zmian w sklepie.",
 };
 
 export default function RootLayout({
@@ -22,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pl" className={inter.variable}>
-      <body className="font-sans antialiased text-[#111315] bg-[#F8F7F4] min-h-screen flex flex-col justify-between selection:bg-[#DBE4FF] selection:text-[#003099]">
+      <body className="font-sans antialiased text-[#18181B] bg-[#FAF8F5] min-h-screen flex flex-col justify-between selection:bg-[#CCFBF1] selection:text-[#134E4A]">
         <div className="flex-1 flex flex-col">
           <Navbar />
           <main className="flex-1">{children}</main>

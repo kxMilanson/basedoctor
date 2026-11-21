@@ -27,7 +27,7 @@ export default function RegisterPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Błąd podczas rejestracji.");
+        throw new Error(data.error || "Nie udało się utworzyć konta.");
       }
 
       router.push("/dashboard");
@@ -40,74 +40,74 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F7F4] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#111315]">
+    <div className="min-h-[calc(100vh-140px)] bg-[#FAF8F5] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#18181B]">
       <div className="max-w-md w-full mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 group mb-1">
-            <div className="w-8 h-8 rounded-md bg-[#111315] text-white flex items-center justify-center shadow-xs group-hover:bg-[#0052FF] transition-colors">
-              <ShieldCheck className="w-4.5 h-4.5" />
+          <Link href="/" className="inline-flex items-center gap-2.5 group mb-1">
+            <div className="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shadow-xs group-hover:bg-[#115E59] transition-colors">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <span className="text-base font-bold text-[#111315] tracking-tight">
-              Base<span className="text-[#0052FF]">Doctor</span>
+            <span className="text-lg font-bold text-[#18181B] tracking-tight">
+              BaseDoctor
             </span>
           </Link>
-          <h1 className="text-xl font-bold tracking-tight text-[#111315]">
-            Utwórz konto BaseDoctor
+          <h1 className="text-2xl font-bold tracking-tight text-[#18181B]">
+            Załóż darmowe konto
           </h1>
-          <p className="text-xs text-[#5C6168]">
-            Rozpocznij automatyczny audyt integralności bazy Base.com
+          <p className="text-xs sm:text-sm text-[#52525B]">
+            W 30 sekund sprawdź, co wymaga poprawy w Twoim sklepie
           </p>
         </div>
 
-        <div className="pci-card p-6 sm:p-7 space-y-5">
+        <div className="studio-card p-6 sm:p-8 space-y-5">
           {error && (
-            <div className="p-3 rounded-md bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+            <div className="p-3.5 rounded-xl bg-[#FFF1F2] border border-[#FECDD3] text-[#BE123C] text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
-                Imię i Nazwisko / Nazwa Sklepu
+              <label className="block text-xs font-medium text-[#3F3F46] mb-1.5">
+                Imię i nazwisko lub nazwa sklepu
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <User className="w-4 h-4 text-[#A1A1AA] absolute left-3.5 top-3" />
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Jan Kowalski (E-Commerce)"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                  placeholder="np. Jan Kowalski"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] bg-[#FAF8F5] focus:bg-white transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
-                Adres E-mail
+              <label className="block text-xs font-medium text-[#3F3F46] mb-1.5">
+                Adres e-mail
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-[#A1A1AA] absolute left-3.5 top-3" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="jan@twojsklep.pl"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] bg-[#FAF8F5] focus:bg-white transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
-                Hasło dostępowe (min. 6 znaków)
+              <label className="block text-xs font-medium text-[#3F3F46] mb-1.5">
+                Hasło (minimum 6 znaków)
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-[#A1A1AA] absolute left-3.5 top-3" />
                 <input
                   type="password"
                   required
@@ -115,36 +115,36 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#E8E4DC] text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#0F766E] bg-[#FAF8F5] focus:bg-white transition"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5 py-1 text-[11px] text-[#5C6168]">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
-                <span>100% tryb bezpieczny tylko do odczytu (Read-Only)</span>
+            <div className="space-y-1.5 py-1 text-xs text-[#52525B]">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981] shrink-0" />
+                <span>Bezpieczny podgląd — nic nie zmieniamy w Twoim sklepie</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
-                <span>Szyfrowanie poświadczeń kluczem AES-256-GCM</span>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981] shrink-0" />
+                <span>Gotowy raport z listą wskazówek i eksportem PDF</span>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary-cobalt w-full py-2.5 text-xs font-semibold cursor-pointer"
+              className="btn-studio-brand w-full py-3 text-xs cursor-pointer"
             >
-              <span>{loading ? "Rejestracja..." : "Utwórz konto"}</span>
+              <span>{loading ? "Tworzenie konta..." : "Utwórz darmowe konto"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-[#5C6168]">
-          Posiadasz już konto?{" "}
-          <Link href="/login" className="text-[#0052FF] font-semibold hover:underline">
+        <p className="text-center text-xs text-[#52525B]">
+          Masz już konto?{" "}
+          <Link href="/login" className="text-[#0F766E] font-semibold hover:underline">
             Zaloguj się
           </Link>
         </p>
