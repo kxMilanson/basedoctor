@@ -40,108 +40,115 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 space-y-6">
-      <div className="text-center space-y-2">
-        <div className="w-10 h-10 rounded-xl bg-zinc-950 text-white mx-auto flex items-center justify-center shadow-xs">
-          <ShieldCheck className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-[#F8F7F4] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#111315]">
+      <div className="max-w-md w-full mx-auto space-y-6">
+        <div className="text-center space-y-2">
+          <Link href="/" className="inline-flex items-center gap-2 group mb-1">
+            <div className="w-8 h-8 rounded-md bg-[#111315] text-white flex items-center justify-center shadow-xs group-hover:bg-[#0052FF] transition-colors">
+              <ShieldCheck className="w-4.5 h-4.5" />
+            </div>
+            <span className="text-base font-bold text-[#111315] tracking-tight">
+              Base<span className="text-[#0052FF]">Doctor</span>
+            </span>
+          </Link>
+          <h1 className="text-xl font-bold tracking-tight text-[#111315]">
+            Utwórz konto BaseDoctor
+          </h1>
+          <p className="text-xs text-[#5C6168]">
+            Rozpocznij automatyczny audyt integralności bazy Base.com
+          </p>
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-zinc-950">
-          Utwórz darmowe konto BaseDoctor
-        </h1>
-        <p className="text-xs text-zinc-500">
-          Rozpocznij audyt jakości danych i synchronizacji magazynu
+
+        <div className="pci-card p-6 sm:p-7 space-y-5">
+          {error && (
+            <div className="p-3 rounded-md bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
+                Imię i Nazwisko / Nazwa Sklepu
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Jan Kowalski (E-Commerce)"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
+                Adres E-mail
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="jan@twojsklep.pl"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
+                Hasło dostępowe (min. 6 znaków)
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 py-1 text-[11px] text-[#5C6168]">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
+                <span>100% tryb bezpieczny tylko do odczytu (Read-Only)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
+                <span>Szyfrowanie poświadczeń kluczem AES-256-GCM</span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary-cobalt w-full py-2.5 text-xs font-semibold cursor-pointer"
+            >
+              <span>{loading ? "Rejestracja..." : "Utwórz konto"}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-[#5C6168]">
+          Posiadasz już konto?{" "}
+          <Link href="/login" className="text-[#0052FF] font-semibold hover:underline">
+            Zaloguj się
+          </Link>
         </p>
       </div>
-
-      <div className="bg-white p-7 rounded-2xl border border-zinc-200/80 shadow-card space-y-5">
-        {error && (
-          <div className="p-3 rounded-xl bg-rose-50/80 border border-rose-200/80 text-rose-700 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600 mb-1.5">
-              Imię i Nazwisko / Nazwa Sklepu
-            </label>
-            <div className="relative">
-              <User className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Jan Kowalski (E-Commerce)"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600 mb-1.5">
-              Adres E-mail
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jan@twojsklep.pl"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600 mb-1.5">
-              Hasło dostępowe (min. 6 znaków)
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5 py-1 text-[11px] text-zinc-500">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>100% tryb bezpieczny tylko do odczytu (Read-Only)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Szyfrowanie poświadczeń kluczem AES-256-GCM</span>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-semibold text-xs shadow-xs disabled:opacity-50 transition cursor-pointer"
-          >
-            {loading ? "Rejestracja..." : "Utwórz konto"}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </form>
-      </div>
-
-      <p className="text-center text-xs text-zinc-500">
-        Posiadasz już konto?{" "}
-        <Link href="/login" className="text-blue-600 font-semibold hover:underline">
-          Zaloguj się
-        </Link>
-      </p>
     </div>
   );
 }

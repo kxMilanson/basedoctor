@@ -61,6 +61,16 @@ export function Navbar() {
     return true;
   });
 
+  if (
+    pathname === "/dashboard" ||
+    pathname.startsWith("/connections") ||
+    pathname.startsWith("/scans") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/admin")
+  ) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-200/80 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

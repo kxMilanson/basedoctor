@@ -44,117 +44,125 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 space-y-6">
-      <div className="text-center space-y-2">
-        <div className="w-10 h-10 rounded-xl bg-zinc-950 text-white mx-auto flex items-center justify-center shadow-xs">
-          <ShieldCheck className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-[#F8F7F4] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-[#111315]">
+      <div className="max-w-md w-full mx-auto space-y-6">
+        <div className="text-center space-y-2">
+          <Link href="/" className="inline-flex items-center gap-2 group mb-1">
+            <div className="w-8 h-8 rounded-md bg-[#111315] text-white flex items-center justify-center shadow-xs group-hover:bg-[#0052FF] transition-colors">
+              <ShieldCheck className="w-4.5 h-4.5" />
+            </div>
+            <span className="text-base font-bold text-[#111315] tracking-tight">
+              Base<span className="text-[#0052FF]">Doctor</span>
+            </span>
+          </Link>
+          <h1 className="text-xl font-bold tracking-tight text-[#111315]">
+            Zaloguj się do BaseDoctor
+          </h1>
+          <p className="text-xs text-[#5C6168]">
+            Dostęp do audytów katalogu SKU, magazynu i zamówień Base.com
+          </p>
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-zinc-950">
-          Zaloguj się do BaseDoctor
-        </h1>
-        <p className="text-xs text-zinc-500">
-          Wprowadź swoje dane, aby uzyskać dostęp do audytów sklepu
+
+        <div className="pci-card p-6 sm:p-7 space-y-5">
+          {error && (
+            <div className="p-3 rounded-md bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168] mb-1.5">
+                Adres E-mail
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="jan@twojsklep.pl"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-[11px] font-semibold tracking-wider uppercase text-[#5C6168]">
+                  Hasło
+                </label>
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#868C94] absolute left-3 top-3" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-md border border-[#E5E3DC] text-xs text-[#111315] placeholder:text-[#868C94] focus:outline-none focus:border-[#0052FF] bg-[#FAF9F6] focus:bg-[#FFFFFF] transition"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary-cobalt w-full py-2.5 text-xs font-semibold cursor-pointer"
+            >
+              <span>{loading ? "Weryfikacja..." : "Zaloguj się"}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </form>
+
+          {/* 1-Click Fast Demo Logins */}
+          <div className="pt-4 border-t border-[#EFECE6] space-y-2">
+            <span className="pci-eyebrow block">Szybkie konta testowe:</span>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickDemo("jan@twojsklep.pl", "User123!")}
+                className="text-left text-xs p-2.5 rounded-md bg-[#FAF9F6] hover:bg-[#EDF2FF] hover:border-[#C7D7FE] border border-[#E5E3DC] transition flex items-center justify-between group cursor-pointer"
+              >
+                <div>
+                  <span className="font-semibold text-[#111315] block group-hover:text-[#0052FF]">
+                    Konto Demonstracyjne (Sklep)
+                  </span>
+                  <span className="text-[11px] font-mono text-[#5C6168]">
+                    jan@twojsklep.pl • User123!
+                  </span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-[#868C94] group-hover:text-[#0052FF] transition" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo("admin@basedoctor.pl", "Admin123!")}
+                className="text-left text-xs p-2.5 rounded-md bg-[#FAF9F6] hover:bg-[#EDF2FF] hover:border-[#C7D7FE] border border-[#E5E3DC] transition flex items-center justify-between group cursor-pointer"
+              >
+                <div>
+                  <span className="font-semibold text-[#111315] block group-hover:text-[#0052FF]">
+                    Administrator Systemu
+                  </span>
+                  <span className="text-[11px] font-mono text-[#5C6168]">
+                    admin@basedoctor.pl • Admin123!
+                  </span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-[#868C94] group-hover:text-[#0052FF] transition" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-[#5C6168]">
+          Nie posiadasz jeszcze konta?{" "}
+          <Link href="/register" className="text-[#0052FF] font-semibold hover:underline">
+            Zarejestruj się bezpłatnie
+          </Link>
         </p>
       </div>
-
-      <div className="bg-white p-7 rounded-2xl border border-zinc-200/80 shadow-card space-y-5">
-        {error && (
-          <div className="p-3 rounded-xl bg-rose-50/80 border border-rose-200/80 text-rose-700 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600 mb-1.5">
-              Adres E-mail
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jan@twojsklep.pl"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600">
-                Hasło
-              </label>
-            </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-semibold text-xs shadow-xs disabled:opacity-50 transition cursor-pointer"
-          >
-            {loading ? "Weryfikacja..." : "Zaloguj się"}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </form>
-
-        {/* 1-Click Fast Demo Logins */}
-        <div className="pt-4 border-t border-zinc-100 space-y-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            Szybkie logowanie testowe:
-          </div>
-          <div className="grid grid-cols-1 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("jan@twojsklep.pl", "User123!")}
-              className="text-left text-xs p-2.5 rounded-xl bg-zinc-50 hover:bg-blue-50/50 hover:border-blue-200 border border-zinc-200/80 transition flex items-center justify-between group"
-            >
-              <div>
-                <span className="font-semibold text-zinc-900 block group-hover:text-blue-700">
-                  Konto Demonstracyjne (Sklep)
-                </span>
-                <span className="text-[11px] text-zinc-500">jan@twojsklep.pl • User123!</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-blue-600 transition" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("admin@basedoctor.pl", "Admin123!")}
-              className="text-left text-xs p-2.5 rounded-xl bg-zinc-50 hover:bg-blue-50/50 hover:border-blue-200 border border-zinc-200/80 transition flex items-center justify-between group"
-            >
-              <div>
-                <span className="font-semibold text-zinc-900 block group-hover:text-blue-700">
-                  Administrator Systemu
-                </span>
-                <span className="text-[11px] text-zinc-500">admin@basedoctor.pl • Admin123!</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-blue-600 transition" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <p className="text-center text-xs text-zinc-500">
-        Nie posiadasz jeszcze konta?{" "}
-        <Link href="/register" className="text-blue-600 font-semibold hover:underline">
-          Zarejestruj się bezpłatnie
-        </Link>
-      </p>
     </div>
   );
 }

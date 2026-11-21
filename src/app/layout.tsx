@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -21,30 +22,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pl" className={inter.variable}>
-      <body className="font-sans antialiased text-zinc-950 bg-[#fafafa] min-h-screen flex flex-col justify-between selection:bg-blue-100 selection:text-blue-900">
-        <div>
+      <body className="font-sans antialiased text-[#111315] bg-[#F8F7F4] min-h-screen flex flex-col justify-between selection:bg-[#DBE4FF] selection:text-[#003099]">
+        <div className="flex-1 flex flex-col">
           <Navbar />
-          <main className="pb-16">{children}</main>
+          <main className="flex-1">{children}</main>
         </div>
-        <footer className="border-t border-zinc-200/80 bg-white/70 py-6 text-xs text-zinc-500">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-zinc-800">BaseDoctor</span>
-              <span className="text-zinc-300">•</span>
-              <span>© {new Date().getFullYear()} Wszelkie prawa zastrzeżone</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 text-zinc-400 text-[11px]">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Architektura Read-Only
-              </span>
-              <span>•</span>
-              <span>Oficjalne API Base.com</span>
-              <span>•</span>
-              <span>Szyfrowanie AES-256-GCM</span>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );
