@@ -2,21 +2,23 @@
 
 **Last Updated:** 2026-11-21  
 **Project:** BaseDoctor (Commercial SaaS Diagnostic Platform for E-commerce & Base.com)  
-**Status:** Beta Release Complete — Verified & Tested (18/18 Vitest tests passing, Next.js 14 production build verified)
+**Status:** Production Ready & Enterprise UI/UX Standard (Linear/Vercel Design)  
+**Tests:** 18/18 Vitest passing | Next.js 14 Production Build passing  
+**Deployments:** Vercel Production (`https://basedoctor.vercel.app` & `https://basedoctor-milan-a45c.vercel.app`)
 
 ---
 
 ## 1. Executive Overview
 BaseDoctor is a commercial SaaS diagnostic platform for online stores and agencies operating on Base.com (BaseLinker). It connects via the official Base.com connector API (`connector.php`) using a strict **Read-Only** model to identify product/SKU catalog discrepancies, multi-warehouse inventory desynchronization, and order fulfillment/payment risks without making destructive changes.
 
-The platform provides actionable business intelligence: each detected defect is presented with its severity, potential business consequences, recommended remediation steps, auto-fix feasibility, and estimated manual repair time.
+The application has been completely redesigned following modern 2027 enterprise B2B SaaS design standards (inspired by Linear, Vercel, and Stripe Dashboard) — featuring hairline borders, clean typography, monospace numeric metrics, high contrast hierarchy, and responsive desktop/mobile layouts.
 
 ---
 
 ## 2. Customer Journey & Core Modules
 
 ### 2.1 Complete Customer Flow
-1. **User Registration & Login:** Email/password registration with salted bcrypt hash (cost 10), stateless HTTP-only JWT session cookies (`jose`, HS256), and Next.js Edge Middleware route guarding.
+1. **User Registration & Login:** Email/password registration with salted bcrypt hash (cost 10), stateless HTTP-only JWT session cookies (`jose`, HS256), and Next.js Edge Middleware route guarding. Includes 1-click test credential auto-fill for frictionless demo evaluation.
 2. **Secure Connection:** Customer connects their Base.com token via `/connections`. The token is immediately encrypted with authenticated symmetric AES-256-GCM.
 3. **Step-by-Step Onboarding:** Visual guidance inside the connection view showing how to retrieve the API token from BaseLinker (`Konto -> Moje konto -> API`) with read-only permissions.
 4. **Demonstration Mode:** 1-click "Wypróbuj w trybie demonstracyjnym" creates an isolated demo store with realistic synthetic fixtures, clearly tagged `[TRYB DEMO - DANE SYNTETYCZNE]`.
@@ -24,11 +26,27 @@ The platform provides actionable business intelligence: each detected defect is 
 6. **Commercial Value & Health Score:** Clear score (0–100%) and issue cards enriched with business impact (`businessImpact`), suggested fix (`suggestedFix`), auto-repair feasibility (`canAutoFix`), and repair duration estimates (`estimatedFixTime`).
 7. **Official PDF Export:** Professional server-side generated A4 PDF report with corporate branding, category summaries, and full issue register.
 8. **Diagnostic History & Isolation:** Scans and connections are strictly scoped to the authenticated tenant (anti-IDOR protection).
-9. **Sales Readiness & Inbound Leads:** Polish landing page with persona targeting (Store Owners, BaseLinker Agencies, Logistics Managers), interactive issue preview, and contact lead capture (`/api/contact`).
+9. **User Settings & Security Spec:** Dedicated settings page with tenant profile, AES-256-GCM technical specifications, API rate limiter parameters, and alert notification preferences.
+10. **Admin Dashboard:** High-level tenant oversight, encrypted credential counts, platform scan activity, and role segregation.
+11. **Landing Page:** 2027-style SaaS presentation with hero, live interactive issue inspector, persona cards, and contact consultation form.
 
 ---
 
-## 3. Diagnostic Rules & Commercial Enrichment
+## 3. Design System & UI/UX Standards
+
+- **Color System:** Pure white surface (`#ffffff`), neutral gray base (`#fafafa`, `#f4f4f5`), high contrast text (`#09090b`), electric blue/indigo primary accent (`#0066FF` / `#2563eb`).
+- **Borders & Elevation:** Hairline borders (`border-zinc-200/80`), subtle single-pixel shadows (`shadow-xs`), card hover elevation.
+- **Typography & Metrics:** Clean typography with Geist/Inter, strict uppercase tracking for category labels, monospace tabular numerals (`font-mono tabular-nums`) for scores, counts, durations, and identifiers.
+- **Status Badges:** Semantically differentiated chips:
+  - Critical: `bg-rose-50 text-rose-700 border-rose-200`
+  - Warning: `bg-amber-50 text-amber-700 border-amber-200`
+  - Neutral / Info: `bg-zinc-100 text-zinc-700 border-zinc-200`
+  - Demo: `bg-amber-50 text-amber-800 border-amber-300`
+  - Active: `bg-emerald-50 text-emerald-700 border-emerald-200`
+
+---
+
+## 4. Diagnostic Rules & Commercial Enrichment
 
 | Rule Code | Severity | Description (PL) | Business Impact | Fix Time Estimate |
 |---|---|---|---|---|
@@ -54,7 +72,7 @@ The platform provides actionable business intelligence: each detected defect is 
 
 ---
 
-## 4. Verification & Automated Test Suite
+## 5. Automated Test Suite & Build Verification
 
 - `src/lib/base-com/client.test.ts` (3 tests) — Read-only whitelist enforcement, parameter formatting, error handling.
 - `src/lib/crypto.test.ts` (3 tests) — AES-256-GCM encryption, decryption, authentication tag anti-tampering verification, token masking.
@@ -63,4 +81,3 @@ The platform provides actionable business intelligence: each detected defect is 
 - `src/test/integration.test.ts` (9 tests) — Multi-page product retrieval pagination, 100-ID chunking, client rate limiting, tenant data isolation (anti-IDOR), authoritative warehouse discrepancy checks, EAN barcode validation, API error & invalid credential handling (ERROR_AUTH), commercial issue enrichment (businessImpact & suggestedFix), and connection deletion security.
 
 **Total:** 5 test suites, 18 tests, 100% passing.
-**Production Build:** Next.js 14.2 compiled with 18 static/dynamic routes and active Edge Middleware (`Exit code: 0`).

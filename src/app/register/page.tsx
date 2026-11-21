@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, Lock, Mail, User, ArrowRight, AlertCircle } from "lucide-react";
+import { ShieldCheck, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -40,68 +40,68 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-12 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-16 space-y-6">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-          <ShieldCheck className="w-7 h-7" />
+        <div className="w-10 h-10 rounded-xl bg-zinc-950 text-white mx-auto flex items-center justify-center shadow-xs">
+          <ShieldCheck className="w-5 h-5 text-white" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Rejestracja w BaseDoctor
+        <h1 className="text-xl font-bold tracking-tight text-zinc-950">
+          Utwórz darmowe konto BaseDoctor
         </h1>
-        <p className="text-sm text-slate-600">
-          Załóż darmowe konto i sprawdź kondycję swojego sklepu
+        <p className="text-xs text-zinc-500">
+          Rozpocznij audyt jakości danych i synchronizacji magazynu
         </p>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+      <div className="bg-white p-7 rounded-2xl border border-zinc-200/80 shadow-card space-y-5">
         {error && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3 rounded-xl bg-rose-50/80 border border-rose-200/80 text-rose-700 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600 mb-1.5">
               Imię i Nazwisko / Nazwa Sklepu
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+              <User className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Jan Kowalski"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                placeholder="Jan Kowalski (E-Commerce)"
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600 mb-1.5">
               Adres E-mail
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+              <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="twoj@sklep.pl"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                placeholder="jan@twojsklep.pl"
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Hasło (min. 6 znaków)
+            <label className="block text-[11px] font-semibold tracking-wider uppercase text-zinc-600 mb-1.5">
+              Hasło dostępowe (min. 6 znaków)
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+              <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
               <input
                 type="password"
                 required
@@ -109,26 +109,37 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-zinc-50/30 hover:bg-white"
               />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 py-1 text-[11px] text-zinc-500">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>100% tryb bezpieczny tylko do odczytu (Read-Only)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Szyfrowanie poświadczeń kluczem AES-256-GCM</span>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md shadow-blue-500/20 disabled:opacity-50 transition"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-semibold text-xs shadow-xs disabled:opacity-50 transition cursor-pointer"
           >
-            {loading ? "Tworzenie konta..." : "Zarejestruj się"}
-            <ArrowRight className="w-4 h-4" />
+            {loading ? "Rejestracja..." : "Utwórz konto"}
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>
 
-      <p className="text-center text-xs text-slate-600">
-        Masz już konto?{" "}
+      <p className="text-center text-xs text-zinc-500">
+        Posiadasz już konto?{" "}
         <Link href="/login" className="text-blue-600 font-semibold hover:underline">
-          Przejdź do logowania
+          Zaloguj się
         </Link>
       </p>
     </div>
