@@ -134,3 +134,16 @@ model AuditLog {
   @@index([action])
   @@map("audit_logs")
 }
+
+model ContactLead {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  storeUrl      String?
+  monthlyOrders String?
+  message       String?
+  status        String   @default("NEW")
+  createdAt     DateTime @default(now())
+
+  @@map("contact_leads")
+}

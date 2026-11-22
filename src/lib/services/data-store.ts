@@ -19,6 +19,7 @@ class MemoryStore {
   public scans: Map<string, any> = new Map();
   public issues: Map<string, any[]> = new Map();
   public auditLogs: any[] = [];
+  public contactLeads: any[] = [];
   public initialized = false;
 
   public async init() {
@@ -105,15 +106,119 @@ class MemoryStore {
 
 const memoryStore = new MemoryStore();
 
+let dbSeedPromise: Promise<void> | null = null;
+async function ensureDbSeeded(): Promise<void> {
+  if (dbSeedPromise) return dbSeedPromise;
+  dbSeedPromise = (async () => {
+    try {
+      const existingAdmin = await prisma.user.findUnique({
+        where: { email: "admin@basedoctor.pl" },
+      });
+      if (!existingAdmin) {
+        const adminHash = await hashPassword("Admin123!");
+        await prisma.user.create({
+          data: {
+            id: "usr_admin_01",
+            email: "admin@basedoctor.pl",
+            passwordHash: adminHash,
+            name: "Administrator Systemu",
+            role: "ADMIN",
+          },
+        });
+      }
+
+      const existingDemo = await prisma.user.findUnique({
+        where: { email: "jan@twojsklep.pl" },
+      });
+      if (!existingDemo) {
+        const userHash = await hashPassword("User123!");
+        const demoUser = await prisma.user.create({
+          data: {
+            id: "usr_demo_01",
+            email: "jan@twojsklep.pl",
+            passwordHash: userHash,
+            name: "Jan Kowalski (Sklep Online)",
+            role: "USER",
+          },
+        });
+
+        const enc = encryptToken("demo_bl_token_8899aabbcc");
+        const demoConn = await prisma.shopConnection.create({
+          data: {
+            id: "conn_demo_01",
+            userId: demoUser.id,
+            name: "Sklep Główny Base.com",
+            encryptedToken: enc.ciphertext,
+            tokenIv: enc.iv,
+            tokenTag: enc.tag,
+            status: "ACTIVE",
+            defaultInventoryId: "101",
+            lastConnectedAt: new Date(),
+          },
+        });
+
+        const scanReport = runDiagnostics({
+          shopConnectionId: demoConn.id,
+          shopName: demoConn.name,
+          productsList: mockProductsList,
+          productsDataMap: mockProductsDataMap,
+          orders: mockOrders,
+          statuses: mockStatuses,
+        });
+
+        await prisma.diagnosticScan.create({
+          data: {
+            id: "scan_demo_01",
+            shopConnectionId: demoConn.id,
+            userId: demoUser.id,
+            status: "COMPLETED",
+            healthScore: scanReport.healthScore,
+            productsScanned: scanReport.productsScanned,
+            ordersScanned: scanReport.ordersScanned,
+            issuesCount: scanReport.issuesCount,
+            criticalCount: scanReport.criticalCount,
+            warningCount: scanReport.warningCount,
+            infoCount: scanReport.infoCount,
+            summary: scanReport.categories as any,
+            startedAt: new Date(scanReport.startedAt),
+            completedAt: new Date(scanReport.completedAt),
+            issues: {
+              create: scanReport.issues.map((iss) => ({
+                category: iss.category,
+                severity: iss.severity,
+                code: iss.code,
+                title: iss.title,
+                description: iss.description,
+                affectedEntityId: iss.affectedEntityId || null,
+                affectedIdentifier: iss.affectedIdentifier || null,
+                details: (iss.details || {}) as any,
+                suggestedFix: iss.suggestedFix,
+              })),
+            },
+          },
+        });
+      }
+    } catch (err) {
+      console.error("ensureDbSeeded warning:", err);
+    }
+  })();
+  return dbSeedPromise;
+}
+
 /**
  * Checks if Prisma can connect to PostgreSQL.
  */
 let isDbConnected: boolean | null = null;
 async function checkDbConnection(): Promise<boolean> {
+  if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+    await memoryStore.init();
+    return false;
+  }
   if (isDbConnected !== null) return isDbConnected;
   try {
     await prisma.$queryRaw`SELECT 1`;
     isDbConnected = true;
+    await ensureDbSeeded();
     return true;
   } catch {
     isDbConnected = false;
@@ -242,16 +347,24 @@ export const dataStore = {
           _count: { select: { scans: true } },
         },
       });
-      return conns.map((c) => ({
-        ...c,
-        maskedToken: maskToken(
-          decryptToken({
-            ciphertext: c.encryptedToken,
-            iv: c.tokenIv,
-            tag: c.tokenTag,
-          })
-        ),
-      }));
+      return conns.map((c) => {
+        let maskedToken = "••••••••";
+        try {
+          maskedToken = maskToken(
+            decryptToken({
+              ciphertext: c.encryptedToken,
+              iv: c.tokenIv,
+              tag: c.tokenTag,
+            })
+          );
+        } catch {
+          maskedToken = "•••••••• (wymaga ponownego zapisu)";
+        }
+        return {
+          ...c,
+          maskedToken,
+        };
+      });
     }
 
     await memoryStore.init();
@@ -393,13 +506,22 @@ export const dataStore = {
   async getScanById(id: string, userId?: string) {
     const hasDb = await checkDbConnection();
     if (hasDb) {
-      return prisma.diagnosticScan.findFirst({
+      const scan = await prisma.diagnosticScan.findFirst({
         where: { id, ...(userId ? { userId } : {}) },
         include: {
           shopConnection: { select: { name: true } },
           issues: true,
         },
       });
+      if (!scan) return null;
+      return {
+        ...scan,
+        issues: scan.issues.map((iss) => ({
+          ...iss,
+          status: (iss.details as any)?.status || "OPEN",
+          fixSnapshot: (iss.details as any)?.fixSnapshot || null,
+        })),
+      };
     }
     await memoryStore.init();
     const scan = memoryStore.scans.get(id);
@@ -789,5 +911,54 @@ export const dataStore = {
       memoryStore.users.delete(user.email);
     }
     return true;
+  },
+
+  // CONTACT LEAD METHODS
+  async createContactLead(data: {
+    name: string;
+    email: string;
+    storeUrl?: string | null;
+    monthlyOrders?: string;
+    message?: string;
+  }) {
+    const hasDb = await checkDbConnection();
+    if (hasDb) {
+      return prisma.contactLead.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          storeUrl: data.storeUrl || null,
+          monthlyOrders: data.monthlyOrders || "Nie określono",
+          message: data.message || "",
+        },
+      });
+    }
+
+    await memoryStore.init();
+    const lead = {
+      id: `lead_${Date.now()}`,
+      name: data.name,
+      email: data.email,
+      storeUrl: data.storeUrl || null,
+      monthlyOrders: data.monthlyOrders || "Nie określono",
+      message: data.message || "",
+      status: "NEW",
+      createdAt: new Date(),
+    };
+    memoryStore.contactLeads.unshift(lead);
+    return lead;
+  },
+
+  async getContactLeads() {
+    const hasDb = await checkDbConnection();
+    if (hasDb) {
+      return prisma.contactLead.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+    }
+
+    await memoryStore.init();
+    return memoryStore.contactLeads;
   },
 };

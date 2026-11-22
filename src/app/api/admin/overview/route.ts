@@ -15,13 +15,15 @@ export async function GET() {
     );
   }
 
-  const [stats, users] = await Promise.all([
+  const [stats, users, leads] = await Promise.all([
     dataStore.getAdminStats(),
     dataStore.getAllUsers(),
+    dataStore.getContactLeads(),
   ]);
 
   return NextResponse.json({
     stats,
     users,
+    leads,
   });
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { dataStore } from "@/lib/services/data-store";
 
 export interface ContactLeadInput {
   name: string;
@@ -27,25 +28,41 @@ export async function POST(request: Request) {
       );
     }
 
-    const leadRecord = {
+    const savedLead = await dataStore.createContactLead({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       storeUrl: storeUrl ? storeUrl.trim() : null,
       monthlyOrders: monthlyOrders || "Nie określono",
       message: message ? message.trim() : "",
-      receivedAt: new Date().toISOString(),
-    };
+    });
 
-    // In production, send notification email / slack webhook / CRM insertion.
-    // For MVP beta release, we log the lead safely without storing sensitive credentials.
-    console.log("=== NOWY WNIOSEK O AUDYT / LEAD BAZEDOCTOR ===", leadRecord);
+    if (process.env.RESEND_API_KEY && process.env.CONTACT_NOTIFY_EMAIL) {
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "BaseDoctor <onboarding@resend.dev>",
+            to: [process.env.CONTACT_NOTIFY_EMAIL],
+            subject: `Nowy wniosek o audyt BaseDoctor: ${savedLead.name}`,
+            text: `Imię/Firma: ${savedLead.name}\nEmail: ${savedLead.email}\nSklep: ${savedLead.storeUrl || "-"}\nZamówienia/msc: ${savedLead.monthlyOrders || "-"}\nWiadomość: ${savedLead.message || "-"}`,
+          }),
+        });
+      } catch (mailErr) {
+        console.error("Resend notification error:", mailErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: "Dziękujemy! Twój wniosek o bezpłatny audyt wstępny został pomyślnie przyjęty. Skontaktujemy się w ciągu 24 godzin.",
       lead: {
-        email: leadRecord.email,
-        name: leadRecord.name,
+        id: savedLead.id,
+        email: savedLead.email,
+        name: savedLead.name,
       },
     });
   } catch (error: any) {
